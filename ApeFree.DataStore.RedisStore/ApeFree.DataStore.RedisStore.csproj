@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
 		<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<Company>ApeFree</Company>
@@ -14,15 +14,15 @@
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 		<PackageIcon>ApeFree_64px.png</PackageIcon>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Description>基于ApeFree.DataStore提供Redis存储器的实现。</Description>
-	</PropertyGroup>
+		<Description>����ApeFree.DataStore�ṩRedis�洢����ʵ�֡�</Description>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="ServiceStack.Redis" Version="6.1.0" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ServiceStack.Redis" Version="6.1.0" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\ApeFree.DataStore\ApeFree.DataStore.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ApeFree.DataStore\ApeFree.DataStore.csproj" />
+  </ItemGroup>
 
 </Project>

@@ -25,6 +25,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <PackageReference Include="STTech.CodePlus" Version="1.5.0-alpha0716" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\ApeFree.DataStore\ApeFree.DataStore.csproj" />
 	</ItemGroup>
 

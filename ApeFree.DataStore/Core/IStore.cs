@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace ApeFree.DataStore.Core
 {
-    public interface IStore:IDisposable
+    public interface IStore : IDisposable
     {
         /// <summary>
         /// 加载数据
@@ -10,9 +11,21 @@ namespace ApeFree.DataStore.Core
         void Load();
 
         /// <summary>
+        /// 异步加载数据
+        /// </summary>
+        /// <returns></returns>
+        Task LoadAsync();
+
+        /// <summary>
         /// 保存数据
         /// </summary>
         void Save();
+
+        /// <summary>
+        /// 异步保存数据
+        /// </summary>
+        /// <returns></returns>
+        Task SaveAsync();
     }
 
     public interface IStore<TValue> : IStore

@@ -1,4 +1,6 @@
-﻿namespace ApeFree.DataStore.IO
+﻿using System;
+
+namespace ApeFree.DataStore.IO
 {
     /// <summary>
     /// 读写管理模型接口
@@ -6,9 +8,9 @@
     /// <typeparam name="T"></typeparam>
     public interface IReadWriteMangedModel<T>
     {
-        void Enqueue(EventItem item);
+        void Enqueue(EventItem item, Action blockBeforeHandler);
 
-        EventItem<T> Dequeue();
+        bool Dequeue(out EventItem<T> item);
     }
 
 }

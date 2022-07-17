@@ -34,6 +34,7 @@
             this.tsmiSave = new System.Windows.Forms.ToolStripMenuItem();
             this.测试ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmiTestIO = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmiConcurrentTestIO = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -74,7 +75,8 @@
             // 测试ToolStripMenuItem
             // 
             this.测试ToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsmiTestIO});
+            this.tsmiTestIO,
+            this.tsmiConcurrentTestIO});
             this.测试ToolStripMenuItem.Name = "测试ToolStripMenuItem";
             this.测试ToolStripMenuItem.Size = new System.Drawing.Size(44, 21);
             this.测试ToolStripMenuItem.Text = "测试";
@@ -85,6 +87,13 @@
             this.tsmiTestIO.Size = new System.Drawing.Size(180, 22);
             this.tsmiTestIO.Text = "存取测试";
             this.tsmiTestIO.Click += new System.EventHandler(this.tsmiTestIO_Click);
+            // 
+            // tsmiConcurrentTestIO
+            // 
+            this.tsmiConcurrentTestIO.Name = "tsmiConcurrentTestIO";
+            this.tsmiConcurrentTestIO.Size = new System.Drawing.Size(180, 22);
+            this.tsmiConcurrentTestIO.Text = "存取测试(并发)";
+            this.tsmiConcurrentTestIO.Click += new System.EventHandler(this.tsmiConcurrentTestIO_Click);
             // 
             // EditForm
             // 
@@ -112,6 +121,7 @@
         private System.Windows.Forms.ToolStripMenuItem tsmiSave;
         private System.Windows.Forms.ToolStripMenuItem 测试ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tsmiTestIO;
+        private System.Windows.Forms.ToolStripMenuItem tsmiConcurrentTestIO;
     }
 }
 

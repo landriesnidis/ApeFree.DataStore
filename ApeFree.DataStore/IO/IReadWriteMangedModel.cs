@@ -10,7 +10,7 @@ namespace ApeFree.DataStore.IO
     {
         void Enqueue(EventItem item, Action blockBeforeHandler);
 
-        bool Dequeue(out EventItem<T> item);
+        EventItem<T> Dequeue();
     }
 
 }

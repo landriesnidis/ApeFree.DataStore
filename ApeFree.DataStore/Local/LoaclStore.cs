@@ -20,74 +20,86 @@ namespace ApeFree.DataStore.Local
         public LoaclStore(LoaclStoreAccessSettings accessSettings) : base(accessSettings)
         {
 
-            Run();
         }
+
+        private bool isRunning = false;
 
         private void Run()
         {
-            new Thread(() =>
+            if (isRunning)
             {
-                while (true)
+                return;
+            }
+
+            isRunning = true;
+
+            lock (this)
+            {
+                new Thread(() =>
                 {
-                    lock (this)
-                    {
-                        var item = model.Dequeue();
-                        if (item == null) continue;
+                    EventItem<T> item = null;
+                    while (model.Dequeue(out item))
+                         {
+                             if (item == null)
+                             {
+                                 break;
+                             }
 
-                        Console.Write($"* Dequeue: [{item.EventType}]");
-                        if (item.EventType == ReadWriteEventType.Write)
-                        {
-                            var path = AccessSettings.SavePath;
-                            Directory.CreateDirectory(Path.GetDirectoryName(path));
-                            SaveHandler(stream =>
-                            {
-                                // TODO: 此处应使用文件流写入
+                             Console.Write($"* Dequeue: [{item.EventType}]");
+                             if (item.EventType == ReadWriteEventType.Write)
+                             {
+                                 var path = AccessSettings.SavePath;
+                                 Directory.CreateDirectory(Path.GetDirectoryName(path));
+                                 SaveHandler(stream =>
+                                 {
+                                     // TODO: 此处应使用文件流写入
 
-                                MemoryStream memoryStream;
-                                if (stream is MemoryStream)
-                                {
-                                    memoryStream = stream as MemoryStream;
-                                }
-                                else
-                                {
-                                    memoryStream = new MemoryStream();
-                                    stream.CopyTo(memoryStream);
-                                }
-                                File.WriteAllBytes(path, memoryStream.ToArray());
-                            });
-                        }
-                        else
-                        {
-                            var path = AccessSettings.SavePath;
-                            if (!File.Exists(path))
-                            {
-                                Value = Activator.CreateInstance<T>();
-                                // Save();
-                            }
-                            else
-                            {
-                                using (var steam = File.Open(path, FileMode.Open, FileAccess.Read))
-                                {
-                                    LoadHandler(steam);
-                                }
-                            }
-                        }
+                                     MemoryStream memoryStream;
+                                     if (stream is MemoryStream)
+                                     {
+                                         memoryStream = stream as MemoryStream;
+                                     }
+                                     else
+                                     {
+                                         memoryStream = new MemoryStream();
+                                         stream.CopyTo(memoryStream);
+                                     }
+                                     File.WriteAllBytes(path, memoryStream.ToArray());
+                                 });
+                             }
+                             else
+                             {
+                                 var path = AccessSettings.SavePath;
+                                 if (!File.Exists(path))
+                                 {
+                                     Value = Activator.CreateInstance<T>();
+                                     // Save();
+                                 }
+                                 else
+                                 {
+                                     using (var steam = File.Open(path, FileMode.Open, FileAccess.Read))
+                                     {
+                                         LoadHandler(steam);
+                                     }
+                                 }
+                             }
 
-                        item.Release();
-                    }
-                }
+                             item.Release();
+                         }
+                    isRunning = false;
 
-            }).Start();
+                }).Start();
+            }
         }
 
         public override void Load()
         {
-            model.Enqueue(new EventItem<T>(ReadWriteEventType.Read));
+            model.Enqueue(new EventItem<T>(ReadWriteEventType.Read), Run);
         }
 
         public override void Save()
         {
-            model.Enqueue(new EventItem<T>(ReadWriteEventType.Write) { Value = Value });
+            model.Enqueue(new EventItem<T>(ReadWriteEventType.Write) { Value = Value }, Run);
         }
     }
 }

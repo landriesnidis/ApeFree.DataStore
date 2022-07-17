@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ApeFree.DataStore.Local;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,7 +17,12 @@ namespace ApeFree.DataStore.Demo
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new SelectForm());
+
+            var store = new LoaclStore<Student>(new LoaclStoreAccessSettings("./config/student.json")
+            {
+                
+            });
+            Application.Run(new EditForm(store));
         }
     }
 }

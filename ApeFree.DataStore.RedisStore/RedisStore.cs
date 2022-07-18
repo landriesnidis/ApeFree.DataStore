@@ -28,13 +28,13 @@ namespace ApeFree.DataStore.RedisStore
             }
             else
             {
-                LoadHandler(new MemoryStream(bytes));
+                ReadStreamHandler(new MemoryStream(bytes));
             }
         }
 
         public override void Save()
         {
-            SaveHandler(stream =>
+            WriteStreamHandler(stream =>
             {
                 MemoryStream memoryStream;
                 if (stream is MemoryStream)

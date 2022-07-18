@@ -35,7 +35,7 @@ namespace ApeFree.DataStore.Registry
                     using (rk)
                     {
                         var bytes = (byte[])rk.GetValue(AccessSettings.Key);
-                        LoadHandler(new MemoryStream(bytes));
+                        ReadStreamHandler(new MemoryStream(bytes));
                     }
                 }
             }
@@ -43,7 +43,7 @@ namespace ApeFree.DataStore.Registry
 
         public override void Save()
         {
-            SaveHandler(stream =>
+            WriteStreamHandler(stream =>
             {
                 using (MemoryStream memoryStream = new MemoryStream())
                 {

@@ -12,8 +12,6 @@ namespace ApeFree.DataStore.Core
         where TValue : new()
         where TSettings : IAccessSettings
     {
-
-
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
@@ -34,14 +32,12 @@ namespace ApeFree.DataStore.Core
         /// </summary>
         public abstract void Save();
 
-
-
         protected Store(TSettings accessSettings)
         {
             AccessSettings = accessSettings;
         }
 
-        protected void LoadHandler(Stream stream)
+        protected void ReadStreamHandler(Stream stream)
         {
             using (stream = AccessSettings.CompressionAdapter.Decompress(stream))
             {
@@ -52,7 +48,7 @@ namespace ApeFree.DataStore.Core
             }
         }
 
-        protected void SaveHandler(Action<Stream> saveHandler)
+        protected void WriteStreamHandler(Action<Stream> saveHandler)
         {
             Stream stream;
             using (stream = AccessSettings.SerializationAdapter.Serialize(Value))
@@ -87,6 +83,8 @@ namespace ApeFree.DataStore.Core
     {
         private readonly IReadWriteMangedModel<TValue> model = new CoalesceMangedModel<TValue>();
 
+        private bool isMangedModelRunning = false;
+
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
@@ -109,15 +107,14 @@ namespace ApeFree.DataStore.Core
             });
         }
 
-        private bool isRunning = false;
         private void ConcurrentMangedModelHandler()
         {
-            if (isRunning)
+            if (isMangedModelRunning)
             {
                 return;
             }
 
-            isRunning = true;
+            isMangedModelRunning = true;
 
             //判断当前是否有线程在工作
             var reusableThread = GetStoreThreadPool().Get();
@@ -138,7 +135,7 @@ namespace ApeFree.DataStore.Core
                     }
                     item.Release();
                 }
-                isRunning = false;
+                isMangedModelRunning = false;
             };
             reusableThread.TaskCompleted += ReusableThread_TaskCompleted;
             reusableThread.Start();
@@ -149,6 +146,5 @@ namespace ApeFree.DataStore.Core
             sender.TaskCompleted -= ReusableThread_TaskCompleted;
             GetStoreThreadPool().Release(sender);
         }
-
     }
 }

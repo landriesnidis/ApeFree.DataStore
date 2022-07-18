@@ -33,7 +33,7 @@ namespace ApeFree.DataStore.Local
             {
                 using (var steam = File.Open(path, FileMode.Open, FileAccess.Read))
                 {
-                    LoadHandler(steam);
+                    ReadStreamHandler(steam);
                 }
             }
         }
@@ -45,7 +45,7 @@ namespace ApeFree.DataStore.Local
         {
             var path = AccessSettings.SavePath;
             Directory.CreateDirectory(Path.GetDirectoryName(path));
-            SaveHandler(stream =>
+            WriteStreamHandler(stream =>
             {
                 // TODO: 此处应使用文件流写入
 

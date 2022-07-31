@@ -9,7 +9,7 @@ using Task = System.Threading.Tasks.Task;
 namespace ApeFree.DataStore.Core
 {
     public abstract partial class Store<TValue, TSettings> : IStore<TValue>
-        where TValue : new()
+        where TValue : class
         where TSettings : IAccessSettings
     {
         /// <summary>

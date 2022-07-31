@@ -6,10 +6,21 @@ using System.Threading.Tasks;
 
 namespace ApeFree.DataStore.Demo
 {
+    public interface IStudent
+    {
+        string Address { get; set; }
+        string ClassName { get; set; }
+        DateTime DateOfBirth { get; set; }
+        string Description { get; set; }
+        long Id { get; set; }
+        bool IsYoungPioneer { get; set; }
+        string Name { get; set; }
+    }
+
     /// <summary>
     /// 学生（测试实体类）
     /// </summary>
-    public class Student
+    public class Student : IStudent
     {
         public long Id { get; set; } = 2022030511;
         public string Name { get; set; } = "张三";

@@ -18,7 +18,7 @@ namespace ApeFree.DataStore.Demo
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            var store = new LoaclStore<Student>(new LoaclStoreAccessSettings("./config/student.json")
+            var store = new LoaclStore<IStudent>(new LoaclStoreAccessSettings("./config/student.json")
             {
                 
             });

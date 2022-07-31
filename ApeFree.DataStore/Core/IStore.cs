@@ -29,7 +29,7 @@ namespace ApeFree.DataStore.Core
     }
 
     public interface IStore<TValue> : IStore
-        where TValue : new()
+        where TValue : class
     {
         /// <summary>
         /// 存储对象

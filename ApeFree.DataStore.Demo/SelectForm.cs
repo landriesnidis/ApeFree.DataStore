@@ -45,7 +45,7 @@ namespace ApeFree.DataStore.Demo
 
         private void btnOK_Click(object sender, EventArgs e)
         {
-            var store = (IStore<Student>)propertyGrid.SelectedObject;
+            var store = (IStore<IStudent>)propertyGrid.SelectedObject;
             if (store != null)
             {
                 new EditForm(store).ShowDialog(); ;

@@ -14,7 +14,7 @@ namespace ApeFree.DataStore.Local
     /// 本地存储器
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class LoaclStore<T> : Store<T, LoaclStoreAccessSettings> where T : new()
+    public class LoaclStore<T> : Store<T, LoaclStoreAccessSettings> where T : class
     {
         public LoaclStore(LoaclStoreAccessSettings accessSettings) : base(accessSettings) { }
 

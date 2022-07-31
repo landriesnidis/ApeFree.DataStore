@@ -12,7 +12,7 @@ namespace ApeFree.DataStore
         /// <param name="_"></param>
         /// <param name="settings"></param>
         /// <returns></returns>
-        public static RegistryStore<T> CreateRegistryStore<T>(this StoreFactory _, RegistryStoreAccessSettings settings) where T : new()
+        public static RegistryStore<T> CreateRegistryStore<T>(this StoreFactory _, RegistryStoreAccessSettings settings) where T : class
         {
             return new RegistryStore<T>(settings);
         }

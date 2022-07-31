@@ -10,7 +10,7 @@ namespace ApeFree.DataStore
         /// <typeparam name="T"></typeparam>
         /// <param name="filePath"></param>
         /// <returns></returns>
-        public static LoaclStore<T> CreateLoaclStore<T>(this StoreFactory _, LoaclStoreAccessSettings settings) where T : new()
+        public static LoaclStore<T> CreateLoaclStore<T>(this StoreFactory _, LoaclStoreAccessSettings settings) where T : class
         {
             return new LoaclStore<T>(settings);
         }

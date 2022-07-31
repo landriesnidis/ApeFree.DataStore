@@ -14,7 +14,7 @@ namespace ApeFree.DataStore
         /// <param name="_"></param>
         /// <param name="settings"></param>
         /// <returns></returns>
-        public static RedisStore<T> CreateRedisStore<T>(this StoreFactory _, RedisStoreAccessSettings settings) where T : new()
+        public static RedisStore<T> CreateRedisStore<T>(this StoreFactory _, RedisStoreAccessSettings settings) where T : class
         {
             return new RedisStore<T>(settings);
         }

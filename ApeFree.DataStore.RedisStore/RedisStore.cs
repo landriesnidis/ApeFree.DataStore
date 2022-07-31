@@ -9,7 +9,7 @@ namespace ApeFree.DataStore.RedisStore
     /// Redis存储器
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class RedisStore<T> : Store<T, RedisStoreAccessSettings> where T : new()
+    public class RedisStore<T> : Store<T, RedisStoreAccessSettings> where T : class
     {
         /// <summary>
         /// 构造Redis存储器

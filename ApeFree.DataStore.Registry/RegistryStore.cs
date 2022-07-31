@@ -9,7 +9,7 @@ namespace ApeFree.DataStore.Registry
     /// 注册表(对象)储存器
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class RegistryStore<T> : Store<T, RegistryStoreAccessSettings> where T : new()
+    public class RegistryStore<T> : Store<T, RegistryStoreAccessSettings> where T : class
     {
         private static readonly RegistryView registryView
             = Environment.Is64BitOperatingSystem ? RegistryView.Registry64 : RegistryView.Registry32;

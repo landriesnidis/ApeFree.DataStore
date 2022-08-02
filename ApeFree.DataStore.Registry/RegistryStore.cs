@@ -18,7 +18,8 @@ namespace ApeFree.DataStore.Registry
         /// 构造注册表(对象)储存器
         /// </summary>
         /// <param name="settings"></param>
-        public RegistryStore(RegistryStoreAccessSettings settings) : base(settings) { }
+        /// <param name="valueFactory"></param>
+        public RegistryStore(RegistryStoreAccessSettings settings, Func<T> valueFactory = null) : base(settings, valueFactory) { }
 
         public override void Load()
         {
@@ -27,8 +28,11 @@ namespace ApeFree.DataStore.Registry
                 var rk = rklm.OpenSubKey(AccessSettings.Path, true);
                 if (rk == null)
                 {
-                    Value = Activator.CreateInstance<T>();
-                    Save();
+                    Value = ValueFactory.Invoke();
+                    if (Value != null)
+                    {
+                        Save();
+                    }
                 }
                 else
                 {
@@ -67,22 +71,5 @@ namespace ApeFree.DataStore.Registry
             });
         }
 
-    }
-
-    /// <summary>
-    /// 本地存储器配置
-    /// </summary>
-    public class RegistryStoreAccessSettings : AccessSettings
-    {
-        public RegistryHive BaseKey { get; private set; }
-        public string Path { get; private set; }
-        public string Key { get; private set; }
-
-        public RegistryStoreAccessSettings(RegistryHive baseKey, string path, string key)
-        {
-            BaseKey = baseKey;
-            Path = path;
-            Key = key;
-        }
     }
 }

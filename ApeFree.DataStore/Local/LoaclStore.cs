@@ -16,7 +16,7 @@ namespace ApeFree.DataStore.Local
     /// <typeparam name="T"></typeparam>
     public class LoaclStore<T> : Store<T, LoaclStoreAccessSettings> where T : class
     {
-        public LoaclStore(LoaclStoreAccessSettings accessSettings) : base(accessSettings) { }
+        public LoaclStore(LoaclStoreAccessSettings accessSettings, Func<T> valueFactory = null) : base(accessSettings, valueFactory) { }
 
         /// <summary>
         /// <inheritdoc/>
@@ -26,8 +26,11 @@ namespace ApeFree.DataStore.Local
             var path = AccessSettings.SavePath;
             if (!File.Exists(path))
             {
-                Value = Activator.CreateInstance<T>();
-                // Save();
+                Value = ValueFactory.Invoke();
+                if (Value != null)
+                {
+                    Save();
+                }
             }
             else
             {

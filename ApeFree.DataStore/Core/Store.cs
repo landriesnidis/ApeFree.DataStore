@@ -13,6 +13,11 @@ namespace ApeFree.DataStore.Core
         where TSettings : IAccessSettings
     {
         /// <summary>
+        /// 在需要时为生成延迟初始化值而调用的委托
+        /// </summary>
+        protected Func<TValue> ValueFactory { get; }
+
+        /// <summary>
         /// <inheritdoc/>
         /// </summary>
         public TSettings AccessSettings { get; }
@@ -32,9 +37,17 @@ namespace ApeFree.DataStore.Core
         /// </summary>
         public abstract void Save();
 
-        protected Store(TSettings accessSettings)
+        protected Store(TSettings accessSettings, Func<TValue> valueFactory = null)
         {
             AccessSettings = accessSettings;
+            if (valueFactory != null)
+            {
+                ValueFactory = valueFactory;
+            }
+            else
+            {
+                ValueFactory = () => Activator.CreateInstance<TValue>();
+            }
         }
 
         protected void ReadStreamHandler(Stream stream)

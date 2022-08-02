@@ -1,5 +1,4 @@
 ﻿using ApeFree.DataStore.Core;
-using ServiceStack.Redis;
 using System;
 using System.IO;
 
@@ -15,7 +14,8 @@ namespace ApeFree.DataStore.RedisStore
         /// 构造Redis存储器
         /// </summary>
         /// <param name="settings"></param>
-        public RedisStore(RedisStoreAccessSettings settings) : base(settings)
+        /// <param name="valueFactory"></param>
+        public RedisStore(RedisStoreAccessSettings settings, Func<T> valueFactory = null) : base(settings, valueFactory)
         { }
 
         public override void Load()
@@ -23,8 +23,11 @@ namespace ApeFree.DataStore.RedisStore
             byte[] bytes = AccessSettings.Client.Get(AccessSettings.Key);
             if (bytes == null)
             {
-                Value = Activator.CreateInstance<T>();
-                Save();
+                Value = ValueFactory.Invoke();
+                if (Value != null)
+                {
+                    Save();
+                }
             }
             else
             {
@@ -50,18 +53,6 @@ namespace ApeFree.DataStore.RedisStore
                 var bytes = memoryStream.ToArray();
                 AccessSettings.Client.Set(AccessSettings.Key, bytes);
             });
-        }
-    }
-
-    public class RedisStoreAccessSettings : AccessSettings
-    {
-        public RedisClient Client { get; set; }
-        public string Key { get; set; }
-
-        public RedisStoreAccessSettings(RedisClient client, string key)
-        {
-            Client = client;
-            Key = key;
         }
     }
 }

@@ -21,22 +21,15 @@ namespace ApeFree.DataStore.Local
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        public override void Load()
+        protected override void OnLoad()
         {
             var path = AccessSettings.SavePath;
-            if (!File.Exists(path))
-            {
-                Value = ValueFactory.Invoke();
-                if (Value != null)
-                {
-                    Save();
-                }
-            }
-            else
+
+            if (File.Exists(path))
             {
                 using (var steam = File.Open(path, FileMode.Open, FileAccess.Read))
                 {
-                    ReadStreamHandler(steam);
+                    OnReadStream(steam);
                 }
             }
         }
@@ -44,11 +37,11 @@ namespace ApeFree.DataStore.Local
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        public override void Save()
+        protected override void OnSave()
         {
             var path = AccessSettings.SavePath;
             Directory.CreateDirectory(Path.GetDirectoryName(path));
-            WriteStreamHandler(stream =>
+            OnWriteStream(stream =>
             {
                 // TODO: 此处应使用文件流写入
 

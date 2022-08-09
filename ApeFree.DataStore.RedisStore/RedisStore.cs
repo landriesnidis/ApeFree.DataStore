@@ -18,26 +18,24 @@ namespace ApeFree.DataStore.RedisStore
         public RedisStore(RedisStoreAccessSettings settings, Func<T> valueFactory = null) : base(settings, valueFactory)
         { }
 
-        public override void Load()
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        protected override void OnLoad()
         {
             byte[] bytes = AccessSettings.Client.Get(AccessSettings.Key);
-            if (bytes == null)
+            if (bytes != null)
             {
-                Value = ValueFactory.Invoke();
-                if (Value != null)
-                {
-                    Save();
-                }
-            }
-            else
-            {
-                ReadStreamHandler(new MemoryStream(bytes));
+                OnReadStream(new MemoryStream(bytes));
             }
         }
 
-        public override void Save()
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        protected override void OnSave()
         {
-            WriteStreamHandler(stream =>
+            OnWriteStream(stream =>
             {
                 MemoryStream memoryStream;
                 if (stream is MemoryStream)

@@ -21,33 +21,31 @@ namespace ApeFree.DataStore.Registry
         /// <param name="valueFactory"></param>
         public RegistryStore(RegistryStoreAccessSettings settings, Func<T> valueFactory = null) : base(settings, valueFactory) { }
 
-        public override void Load()
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        protected override void OnLoad()
         {
             using (var rklm = RegistryKey.OpenBaseKey(AccessSettings.BaseKey, registryView))
             {
                 var rk = rklm.OpenSubKey(AccessSettings.Path, true);
-                if (rk == null)
-                {
-                    Value = ValueFactory.Invoke();
-                    if (Value != null)
-                    {
-                        Save();
-                    }
-                }
-                else
+                if (rk != null)
                 {
                     using (rk)
                     {
                         var bytes = (byte[])rk.GetValue(AccessSettings.Key);
-                        ReadStreamHandler(new MemoryStream(bytes));
+                        OnReadStream(new MemoryStream(bytes));
                     }
                 }
             }
         }
 
-        public override void Save()
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        protected override void OnSave()
         {
-            WriteStreamHandler(stream =>
+            OnWriteStream(stream =>
             {
                 using (MemoryStream memoryStream = new MemoryStream())
                 {

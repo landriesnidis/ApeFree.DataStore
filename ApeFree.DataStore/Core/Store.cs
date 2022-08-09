@@ -30,12 +30,37 @@ namespace ApeFree.DataStore.Core
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        public abstract void Load();
+        protected abstract void OnLoad();
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
-        public abstract void Save();
+        protected abstract void OnSave();
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public void Load()
+        {
+            OnLoad();
+
+            if (Value == null)
+            {
+                Value = ValueFactory.Invoke();
+                if (Value != null)
+                {
+                    Save();
+                }
+            }
+        }
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public void Save()
+        {
+            OnSave();
+        }
 
         protected Store(TSettings accessSettings, Func<TValue> valueFactory = null)
         {
@@ -50,7 +75,7 @@ namespace ApeFree.DataStore.Core
             }
         }
 
-        protected void ReadStreamHandler(Stream stream)
+        protected void OnReadStream(Stream stream)
         {
             using (stream = AccessSettings.CompressionAdapter.Decompress(stream))
             {
@@ -61,7 +86,7 @@ namespace ApeFree.DataStore.Core
             }
         }
 
-        protected void WriteStreamHandler(Action<Stream> saveHandler)
+        protected void OnWriteStream(Action<Stream> saveHandler)
         {
             Stream stream;
             using (stream = AccessSettings.SerializationAdapter.Serialize(Value))
@@ -140,11 +165,11 @@ namespace ApeFree.DataStore.Core
 
                     if (item.EventType == ReadWriteEventType.Write)
                     {
-                        Save();
+                        OnSave();
                     }
                     else
                     {
-                        Load();
+                        OnLoad();
                     }
                     item.Release();
                 }

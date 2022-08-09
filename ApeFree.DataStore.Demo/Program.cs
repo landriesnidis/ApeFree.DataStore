@@ -18,10 +18,12 @@ namespace ApeFree.DataStore.Demo
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            var store = new LoaclStore<IStudent>(new LoaclStoreAccessSettings("./config/student.json")
+            var settings = new LoaclStoreAccessSettings("./config/student.json")
             {
-                
-            });
+
+            };
+
+            var store = new LoaclStore<IStudent>(settings,()=> new Student());
             Application.Run(new EditForm(store));
         }
     }

@@ -111,7 +111,7 @@ namespace ApeFree.DataStore.Core
         /// </summary>
         /// <param name="_"></param>
         /// <returns></returns>
-        protected ReusableThreadPool GetStoreThreadPool()
+        protected ThreadPool GetStoreThreadPool()
         {
             return ReusableThreadPoolManager.Instance.Pool;
         }
@@ -147,6 +147,7 @@ namespace ApeFree.DataStore.Core
 
         private void ConcurrentMangedModelHandler()
         {
+            //判断当前是否有线程在工作
             if (isMangedModelRunning)
             {
                 return;
@@ -154,10 +155,7 @@ namespace ApeFree.DataStore.Core
 
             isMangedModelRunning = true;
 
-            //判断当前是否有线程在工作
-            var reusableThread = GetStoreThreadPool().Get();
-            reusableThread.TaskAction = () =>
-            {
+            GetStoreThreadPool().Run(new TaskDelegation(() => {
                 while (true)
                 {
                     var item = model.Dequeue();
@@ -174,15 +172,7 @@ namespace ApeFree.DataStore.Core
                     item.Release();
                 }
                 isMangedModelRunning = false;
-            };
-            reusableThread.TaskCompleted += ReusableThread_TaskCompleted;
-            reusableThread.Start();
-        }
-
-        private void ReusableThread_TaskCompleted(ReusableThread sender, CompletedEventArgs e)
-        {
-            sender.TaskCompleted -= ReusableThread_TaskCompleted;
-            GetStoreThreadPool().Release(sender);
+            }));
         }
     }
 }

@@ -8,16 +8,17 @@ using System.Text;
 
 namespace ApeFree.DataStore.Adapters
 {
+
     /// <summary>
     /// Json序列化器
     /// </summary>
-    public class JsonSerializationAdapter : ISerializationAdapter
+    public class JsonSerializationAdapter : BaseSerializationAdapter
     {
         /// <summary>
         /// 默认的Json序列化配置
         /// 私有静态，此对象用作全局的默认配置，不允许被外部获取，以免被修改
         /// </summary>
-        private readonly static Lazy<JsonSerializerSettings> serializerSettings = new Lazy<JsonSerializerSettings>(() =>
+        protected readonly static Lazy<JsonSerializerSettings> serializerSettings = new Lazy<JsonSerializerSettings>(() =>
         {
             return new JsonSerializerSettings().With(s =>
             {
@@ -53,7 +54,7 @@ namespace ApeFree.DataStore.Adapters
         /// <typeparam name="T"><inheritdoc/></typeparam>
         /// <param name="stream"><inheritdoc/></param>
         /// <returns><inheritdoc/></returns>
-        public T Deserialize<T>(Stream stream)
+        public override T Deserialize<T>(Stream stream)
         {
             StreamReader reader = new StreamReader(stream, Encoding);
             var json = reader.ReadToEnd();
@@ -65,13 +66,13 @@ namespace ApeFree.DataStore.Adapters
         /// </summary>
         /// <param name="obj"><inheritdoc/></param>
         /// <returns><inheritdoc/></returns>
-        public Stream Serialize(object obj)
+        public override Stream Serialize(object obj)
         {
             var json = JsonConvert.SerializeObject(obj, Formatting.Indented, SerializerSettings ?? serializerSettings.Value);
             var bytes = Encoding.GetBytes(json);
             return new MemoryStream(bytes);
         }
 
-        public void Dispose() { }
+        public override void Dispose() { }
     }
 }

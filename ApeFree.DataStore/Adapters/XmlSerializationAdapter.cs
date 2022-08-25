@@ -11,7 +11,7 @@ namespace ApeFree.DataStore.Adapters
     /// <summary>
     /// Xml序列化器
     /// </summary>
-    public class XmlSerializationAdapter : ISerializationAdapter
+    public class XmlSerializationAdapter : BaseSerializationAdapter
     {
         public string RootName { get; }
 
@@ -28,7 +28,7 @@ namespace ApeFree.DataStore.Adapters
         /// </summary>
         /// <typeparam name="T"><inheritdoc/></typeparam>
         /// <returns><inheritdoc/></returns>
-        public T Deserialize<T>(Stream stream)
+        public override T Deserialize<T>(Stream stream)
         {
             var type = typeof(T);
             XmlSerializer serializer = (XmlSerializer)dictXmlSerializers.GetValue(type, new XmlSerializer(type, RootName ?? type.Name));
@@ -41,7 +41,7 @@ namespace ApeFree.DataStore.Adapters
         /// </summary>
         /// <param name="obj"><inheritdoc/></param>
         /// <returns><inheritdoc/></returns>
-        public Stream Serialize(object obj)
+        public override Stream Serialize(object obj)
         {
             var type = obj.GetType();
             using (MemoryStream stream = new MemoryStream())
@@ -52,7 +52,7 @@ namespace ApeFree.DataStore.Adapters
             }
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             dictXmlSerializers.Clear();
         }

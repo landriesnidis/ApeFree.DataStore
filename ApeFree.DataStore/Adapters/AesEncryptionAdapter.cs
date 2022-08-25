@@ -7,7 +7,7 @@ using System.Text;
 
 namespace ApeFree.DataStore.Adapters
 {
-    public class AesEncryptionAdapter : IEncryptionAdapter
+    public class AesEncryptionAdapter : BaseEncryptionAdapter
     {
         private ICryptoTransform encryptor;
         private ICryptoTransform decryptor;
@@ -70,17 +70,17 @@ namespace ApeFree.DataStore.Adapters
             }
         }
 
-        public Stream Encode(Stream stream)
+        public override Stream Encode(Stream stream)
         {
             return new CryptoStream(stream, encryptor, CryptoStreamMode.Read);
         }
 
-        public Stream Decode(Stream stream)
+        public override Stream Decode(Stream stream)
         {
             return new CryptoStream(stream, decryptor, CryptoStreamMode.Read);
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             encryptor?.Dispose();
             decryptor?.Dispose();

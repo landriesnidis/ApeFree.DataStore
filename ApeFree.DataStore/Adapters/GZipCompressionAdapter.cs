@@ -12,11 +12,7 @@ namespace ApeFree.DataStore.Adapters
     /// </summary>
     public class GZipCompressionAdapter : BaseCompressionAdapter
     {
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
         public override Stream Compress(Stream stream)
         {
             MemoryStream compressStream = new MemoryStream();
@@ -27,16 +23,13 @@ namespace ApeFree.DataStore.Adapters
             return compressStream;
         }
 
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
         public override Stream Decompress(Stream stream)
         {
             return new GZipStream(stream, CompressionMode.Decompress);
         }
 
+        /// <inheritdoc/>
         public override void Dispose() { }
     }
 }

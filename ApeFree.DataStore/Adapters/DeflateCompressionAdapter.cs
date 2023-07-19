@@ -9,11 +9,7 @@ namespace ApeFree.DataStore.Adapters
     /// </summary>
     public class DeflateCompressionAdapter : BaseCompressionAdapter
     {
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
         public override Stream Compress(Stream stream)
         {
             MemoryStream compressStream = new MemoryStream();
@@ -24,16 +20,13 @@ namespace ApeFree.DataStore.Adapters
             return compressStream;
         }
 
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
         public override Stream Decompress(Stream stream)
         {
             return new DeflateStream(stream, CompressionMode.Decompress);
         }
 
+        /// <inheritdoc/>
         public override void Dispose() { }
     }
 }

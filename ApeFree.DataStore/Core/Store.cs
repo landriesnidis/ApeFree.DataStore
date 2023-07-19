@@ -101,6 +101,7 @@ namespace ApeFree.DataStore.Core
             }
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             AccessSettings.Dispose();

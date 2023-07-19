@@ -5,8 +5,13 @@ namespace ApeFree.DataStore.Adapters
 {
     public abstract class BaseSerializationAdapter : ISerializationAdapter
     {
+        /// <inheritdoc/>
         public abstract T Deserialize<T>(Stream stream);
-        public abstract void Dispose();
+
+        /// <inheritdoc/>
         public abstract Stream Serialize(object obj);
+
+        /// <inheritdoc/>
+        public abstract void Dispose();
     }
 }

@@ -14,9 +14,11 @@ namespace ApeFree.DataStore.Core
         /// 加了Lazy之后，只有当使用到的时候才加载
         /// </summary>
         private static readonly Lazy<ReusableThreadPoolManager> single = new Lazy<ReusableThreadPoolManager>(() => new ReusableThreadPoolManager());
+        
         public static ReusableThreadPoolManager Instance => single.Value;
 
         public ThreadPool Pool { get; }
+
         private ReusableThreadPoolManager() {
             Pool = new ThreadPool();
         }

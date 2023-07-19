@@ -70,16 +70,19 @@ namespace ApeFree.DataStore.Adapters
             }
         }
 
+        /// <inheritdoc/>
         public override Stream Encode(Stream stream)
         {
             return new CryptoStream(stream, encryptor, CryptoStreamMode.Read);
         }
 
+        /// <inheritdoc/>
         public override Stream Decode(Stream stream)
         {
             return new CryptoStream(stream, decryptor, CryptoStreamMode.Read);
         }
 
+        /// <inheritdoc/>
         public override void Dispose()
         {
             encryptor?.Dispose();

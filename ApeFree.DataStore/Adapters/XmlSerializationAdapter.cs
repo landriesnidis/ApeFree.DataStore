@@ -13,6 +13,9 @@ namespace ApeFree.DataStore.Adapters
     /// </summary>
     public class XmlSerializationAdapter : BaseSerializationAdapter
     {
+        /// <summary>
+        /// 根节点名称
+        /// </summary>
         public string RootName { get; }
 
         private readonly Dictionary<Type, XmlSerializer> dictXmlSerializers;
@@ -23,11 +26,7 @@ namespace ApeFree.DataStore.Adapters
             dictXmlSerializers = new Dictionary<Type, XmlSerializer>();
         }
 
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
-        /// <typeparam name="T"><inheritdoc/></typeparam>
-        /// <returns><inheritdoc/></returns>
         public override T Deserialize<T>(Stream stream)
         {
             var type = typeof(T);
@@ -36,11 +35,7 @@ namespace ApeFree.DataStore.Adapters
             return obj;
         }
 
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
-        /// <param name="obj"><inheritdoc/></param>
-        /// <returns><inheritdoc/></returns>
         public override Stream Serialize(object obj)
         {
             var type = obj.GetType();
@@ -52,6 +47,7 @@ namespace ApeFree.DataStore.Adapters
             }
         }
 
+        /// <inheritdoc/>
         public override void Dispose()
         {
             dictXmlSerializers.Clear();

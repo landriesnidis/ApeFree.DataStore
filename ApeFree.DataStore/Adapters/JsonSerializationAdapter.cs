@@ -48,12 +48,7 @@ namespace ApeFree.DataStore.Adapters
             SerializerSettings = serializerSettings;
         }
 
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
-        /// <typeparam name="T"><inheritdoc/></typeparam>
-        /// <param name="stream"><inheritdoc/></param>
-        /// <returns><inheritdoc/></returns>
         public override T Deserialize<T>(Stream stream)
         {
             StreamReader reader = new StreamReader(stream, Encoding);
@@ -61,11 +56,7 @@ namespace ApeFree.DataStore.Adapters
             return JsonConvert.DeserializeObject<T>(json, SerializerSettings ?? serializerSettings.Value);
         }
 
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
-        /// <param name="obj"><inheritdoc/></param>
-        /// <returns><inheritdoc/></returns>
         public override Stream Serialize(object obj)
         {
             var json = JsonConvert.SerializeObject(obj, Formatting.Indented, SerializerSettings ?? serializerSettings.Value);
@@ -73,6 +64,7 @@ namespace ApeFree.DataStore.Adapters
             return new MemoryStream(bytes);
         }
 
+        /// <inheritdoc/>
         public override void Dispose() { }
     }
 }

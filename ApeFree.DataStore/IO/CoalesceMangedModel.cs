@@ -5,7 +5,7 @@ using System.Threading;
 namespace ApeFree.DataStore.IO
 {
     /// <summary>
-    /// 
+    /// 合并管理模型
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class CoalesceMangedModel<T> : IReadWriteMangedModel<T>

@@ -92,7 +92,7 @@
             // 
             this.tsmiConcurrentTestIO.Name = "tsmiConcurrentTestIO";
             this.tsmiConcurrentTestIO.Size = new System.Drawing.Size(180, 22);
-            this.tsmiConcurrentTestIO.Text = "存取测试(并发)";
+            this.tsmiConcurrentTestIO.Text = "存取测试(多线程)";
             this.tsmiConcurrentTestIO.Click += new System.EventHandler(this.tsmiConcurrentTestIO_Click);
             // 
             // EditForm

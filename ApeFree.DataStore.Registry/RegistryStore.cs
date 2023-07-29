@@ -34,7 +34,10 @@ namespace ApeFree.DataStore.Registry
                     using (rk)
                     {
                         var bytes = (byte[])rk.GetValue(AccessSettings.Key);
-                        OnReadStream(new MemoryStream(bytes));
+                        if (bytes != null)
+                        {
+                            OnReadStream(new MemoryStream(bytes));
+                        }
                     }
                 }
             }

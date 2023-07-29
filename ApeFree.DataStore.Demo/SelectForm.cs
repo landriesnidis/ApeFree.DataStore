@@ -28,8 +28,8 @@ namespace ApeFree.DataStore.Demo
             IStore<Student> store = null;
             if (rbtnDisk.Checked)
             {
-                store = StoreFactory.Factory.CreateLoaclStore<Student>(
-                    new LoaclStoreAccessSettings("./config/student.conf")
+                store = StoreFactory.Factory.CreateLocalStore<Student>(
+                    new LocalStoreAccessSettings("./config/student.conf")
                     {
                         SerializationAdapter = new XmlSerializationAdapter(),
                         CompressionAdapter = new DeflateCompressionAdapter(),
@@ -45,7 +45,7 @@ namespace ApeFree.DataStore.Demo
 
         private void btnOK_Click(object sender, EventArgs e)
         {
-            var store = (IStore<IStudent>)propertyGrid.SelectedObject;
+            var store = (IStore<Student>)propertyGrid.SelectedObject;
             if (store != null)
             {
                 new EditForm(store).ShowDialog(); ;

@@ -16,9 +16,9 @@ namespace ApeFree.DataStore.Demo
     public partial class EditForm : Form
     {
 
-        private IStore<IStudent> store;
+        private IStore<Student> store;
 
-        public EditForm(IStore<IStudent> store) : this()
+        public EditForm(IStore<Student> store) : this()
         {
             this.store = store;
 

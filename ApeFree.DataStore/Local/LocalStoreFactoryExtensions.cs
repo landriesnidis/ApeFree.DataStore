@@ -2,7 +2,7 @@
 
 namespace ApeFree.DataStore
 {
-    public static class LoaclStoreFactoryExtensions
+    public static class LocalStoreFactoryExtensions
     {
         /// <summary>
         /// 创建一个本地(对象)存储器
@@ -10,9 +10,9 @@ namespace ApeFree.DataStore
         /// <typeparam name="T"></typeparam>
         /// <param name="filePath"></param>
         /// <returns></returns>
-        public static LoaclStore<T> CreateLoaclStore<T>(this StoreFactory _, LoaclStoreAccessSettings settings) where T : class
+        public static LocalStore<T> CreateLocalStore<T>(this StoreFactory _, LocalStoreAccessSettings settings) where T : class
         {
-            return new LoaclStore<T>(settings);
+            return new LocalStore<T>(settings);
         }
     }
 }

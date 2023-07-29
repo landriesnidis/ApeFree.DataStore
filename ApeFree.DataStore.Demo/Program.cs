@@ -18,12 +18,15 @@ namespace ApeFree.DataStore.Demo
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            var settings = new LoaclStoreAccessSettings("./config/student.json")
-            {
+            //var settings = new LocalStoreAccessSettings("./config/student.json")
+            //{
 
-            };
+            //};
 
-            var store = new LoaclStore<IStudent>(settings,()=> new Student());
+            //var store = new LocalStore<IStudent>(settings,()=> new Student());
+
+            var store = StoreFactory.Factory.CreateRegistryStore<Student>(new Registry.RegistryStoreAccessSettings(Microsoft.Win32.RegistryHive.CurrentUser, @"ApeFree\DataStore\Demo", "student"));
+
             Application.Run(new EditForm(store));
         }
     }

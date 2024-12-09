@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net45</TargetFramework>
+		<TargetFramework>net452</TargetFramework>
 		<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<Company>ApeFree</Company>
@@ -26,7 +26,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="STTech.CodePlus" Version="1.5.14" />
+		<PackageReference Include="STTech.CodePlus" Version="1.7.2.3" />
 	</ItemGroup>
 
 	<ItemGroup>

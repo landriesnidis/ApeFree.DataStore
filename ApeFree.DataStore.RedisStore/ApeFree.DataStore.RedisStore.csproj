@@ -27,7 +27,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="ServiceStack.Redis" Version="6.9.0" />
-		<PackageReference Include="STTech.CodePlus" Version="1.5.14" />
+		<PackageReference Include="STTech.CodePlus" Version="1.7.2.3" />
 	</ItemGroup>
 
 	<ItemGroup>

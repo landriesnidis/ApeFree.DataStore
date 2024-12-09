@@ -8,10 +8,11 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>ApeFree.DataStore.Demo</RootNamespace>
     <AssemblyName>ApeFree.DataStore.Demo</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -36,8 +37,8 @@
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="STTech.CodePlus, Version=1.5.14.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\STTech.CodePlus.1.5.14\lib\net45\STTech.CodePlus.dll</HintPath>
+    <Reference Include="STTech.CodePlus, Version=1.7.2.3, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\STTech.CodePlus.1.7.2.3\lib\net45\STTech.CodePlus.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -78,6 +79,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <EmbeddedResource Include="SelectForm.resx">
       <DependentUpon>SelectForm.cs</DependentUpon>
@@ -98,11 +100,11 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ApeFree.DataStore.Registry\ApeFree.DataStore.Registry.csproj">
-      <Project>{192a43e3-0947-4dd0-95b7-0e66019e53d0}</Project>
+      <Project>{192A43E3-0947-4DD0-95B7-0E66019E53D0}</Project>
       <Name>ApeFree.DataStore.Registry</Name>
     </ProjectReference>
     <ProjectReference Include="..\ApeFree.DataStore\ApeFree.DataStore.csproj">
-      <Project>{cc1ee4cc-b523-4f15-bff6-7becc2ed4ddf}</Project>
+      <Project>{CC1EE4CC-B523-4F15-BFF6-7BECC2ED4DDF}</Project>
       <Name>ApeFree.DataStore</Name>
     </ProjectReference>
   </ItemGroup>

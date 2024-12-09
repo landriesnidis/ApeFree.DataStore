@@ -25,7 +25,8 @@ namespace ApeFree.DataStore.Demo
 
             //var store = new LocalStore<IStudent>(settings,()=> new Student());
 
-            var store = StoreFactory.Factory.CreateRegistryStore<Student>(new Registry.RegistryStoreAccessSettings(Microsoft.Win32.RegistryHive.CurrentUser, @"ApeFree\DataStore\Demo", "student"));
+            var store = StoreFactory.Factory.CreateLocalStore<Student>(new LocalStoreAccessSettings("./config/student.json"));
+            //var store = StoreFactory.Factory.CreateRegistryStore<Student>(new Registry.RegistryStoreAccessSettings(Microsoft.Win32.RegistryHive.CurrentUser, @"ApeFree\DataStore\Demo", "student"));
 
             Application.Run(new EditForm(store));
         }

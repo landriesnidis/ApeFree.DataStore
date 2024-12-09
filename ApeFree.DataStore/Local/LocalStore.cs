@@ -4,6 +4,7 @@ using STTech.CodePlus.Threading;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,7 +28,7 @@ namespace ApeFree.DataStore.Local
 
             if (File.Exists(path))
             {
-                using (var steam = File.Open(path, FileMode.Open, FileAccess.Read))
+                using (var steam = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
                     OnReadStream(steam);
                 }

@@ -26,7 +26,7 @@ namespace ApeFree.DataStore.Core
             EncryptionAdapter.Dispose();
         }
 
-        internal class DefaultSerializationAdapter : JsonSerializationAdapter
+        internal class DefaultSerializationAdapter : JbinSerializationAdapter
         {
             internal static Lazy<DefaultSerializationAdapter> Default = new Lazy<DefaultSerializationAdapter>();
         }

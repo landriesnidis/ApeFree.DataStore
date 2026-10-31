@@ -31,7 +31,7 @@
 | **高频并发写风暴** | 滑块拖拽、高频传感器采样导致磁盘或网络 IO 被打崩、文件锁死 | **内置自适应写折叠（Write Coalescing）**：高频并发写自动合并为单次最终落盘 |
 | **时序错乱与脏读** | 并发异步写入未完成时发起读取，容易读到旧数据或损坏的文件 | **读写因果一致性保证（Read-Your-Writes）**：写后的读必定等待并读取写后新值 |
 | **压缩与加密扩展** | 算法逻辑与文件读写强耦合，内存中反复多次生成 `byte[]` 和全量 `MemoryStream` | **双向装饰流管道（Decorator Pipeline）**：端到端零全量内存拷贝，插件自由插拔 |
-| **工业大数组开销** | JSON 序列化点云/大数组时产生严重的 Base64 膨胀与 GC 暂停 | **深度集成 Jbin 极限性能引擎**：基元数组通过非托管指针零拷贝映射，吞吐提升数倍 |
+| **工业大数组开销** | JSON 序列化点云/大数组时产生严重的 Base64 膨胀与 GC 暂停 | **默认二进制紧凑存储（Jbin）**：基元数组支持直接内存映射与紧凑数值编码，避免文本膨胀与 GC 停顿 |
 
 ---
 
@@ -79,28 +79,21 @@ flowchart TD
 
 DataStore 3.0.0 提供了全面的序列化格式支持，用户可以通过 `settings.SerializationAdapter` 一键切换，并支持深度自定义配置。
 
-### 1. Jbin 序列化器（`JbinSerializationAdapter`，默认推荐 ⭐）
-**Jbin** 是 ApeFree 生态专属的高性能 JSON 二进制混合序列化协议。它将对象的拓扑骨架以 JSON 表达，而将大型浮点/整型数组、矩阵或结构体外置为连续二进制块，实现直接内存映射。
-- **端到端纯流式**：直接向底层流写入，零临时 byte[] 堆分配；
-- **内存即时释放**：反序列化后自动 Dispose 释放数据块；
+### 1. 二进制序列化器（`JbinSerializationAdapter`，默认推荐 ⭐）
+DataStore 默认提供 **Jbin** 高性能二进制序列化格式，支持对象与连续二进制数据的流式内存映射。
+- **端到端纯流式**：直接向底层持久化流写入，避免中间大字节数组分配；
+- **内存即时释放**：反序列化后自动释放临时数据缓冲；
 - **多态白名单安全防护**：支持指定受信任的程序集白名单；
-- **原生基元数组领域压缩**：针对不同原生数值类型内置专门的时序与位压缩算法（浮点 Gorilla、整型 FoR、长整型 Simple-8b、短整型 Delta+BitPacking），解压过程无需外置解压器，Jbin 帧头自适应感知还原。
+- **紧凑编码支持**：支持对连续数值数组进行紧凑编码存储。
 
 ```csharp
 using ApeFree.DataStore.Adapters;
-using ApeFree.Protocols.Json.Jbin;
 
-// 1. 使用 Jbin 默认高性能配置（原生内存块零拷贝）
+// 1. 使用默认高性能二进制配置（开箱即用）
 settings.SerializationAdapter = new JbinSerializationAdapter();
 
-// 2. 启用基元数值数组与字符串领域专有压缩算法（Gorilla 浮点 / FoR 整型 / Simple-8b 长整型 / Dictionary 字符串字典）
-settings.SerializationAdapter = JbinSerializationAdapter.CreateWithPrimitiveCompression(
-    singleMode: SingleArrayCompressMode.Gorilla,
-    doubleMode: DoubleArrayCompressMode.Gorilla,
-    int32Mode: Int32ArrayCompressMode.FrameOfReference,
-    int64Mode: Int64ArrayCompressMode.Simple8b,
-    stringMode: StringArrayCompressMode.Dictionary
-);
+// 2. 启用紧凑编码配置
+settings.SerializationAdapter = JbinSerializationAdapter.CreateWithPrimitiveCompression();
 
 // 3. 带有多态反序列化安全白名单的配置
 settings.SerializationAdapter = new JbinSerializationAdapter(
@@ -364,9 +357,9 @@ await Task.WhenAll(tasks);
 > **工程物理路径**：[`samples/ApeFree.DataStore.BenchmarkDemo`](samples/ApeFree.DataStore.BenchmarkDemo/)  
 > **复现执行指令**：`dotnet run --project samples/ApeFree.DataStore.BenchmarkDemo -f net10.0-windows -- -r`  
 > **压缩体系分工机制说明**：
-> 1. **类型层领域压缩（Type Layer）**：由 `JbinPrimitiveArrayConverter` 针对不同基元类型数组执行专有算法（如浮点数采用 Gorilla XOR 时序差分、32位整型采用 Frame of Reference (FoR) 基准帧差分、64位整型采用 Simple-8b 紧凑位打包）。解压过程由 Jbin 帧头自适应感知还原，无需外置解压器；
+> 1. **序列化层（Serialization Layer）**：由内置序列化适配器（`JbinSerializationAdapter`）负责将内存对象及连续数值数组编码为二进制数据流，支持直接内存映射与紧凑数值编码。解析过程由帧头自适应感知还原，无需外置解压器；
 > 2. **流管道层通用压缩（Stream Filter Layer）**：由 `IStreamFilter`（如 `DeflateStreamFilter`、`GZipStreamFilter`）在物理字节出口处工作；
-> 3. **双层复合管道（Composite Pipeline）**：类型层先消除连续数值的数据熵与冗余位，流管道层再做通量压缩，实现体积极限收敛。
+> 3. **双层复合管道（Composite Pipeline）**：序列化层先行编码，流管道层再做通量压缩，实现体积极限收敛。
 
 #### 1. 数据集 A：海量传感器与 3D 点云时序数据（原生值类型连续大数组）
 - **数据结构**：[`PointCloudDataset`](samples/ApeFree.DataStore.BenchmarkDemo/Models/BigDataModels.cs)，包含 50,000 个采样点（`float[] PositionsX, Y, Z` 各 50,000 项，`double[] Timestamps` 50,000 项，`int[] Intensities` 50,000 项，`byte[] ReturnFlags` 50,000 项，原生内存二进制总大小约 1.25 MB）。
@@ -378,10 +371,10 @@ await Task.WhenAll(tasks);
 | **原生 XmlSerializer (标准 XML)** | 151.8 ms | 193.2 ms | 345.0 ms | 7.14 MB (7,485,574 B) | -189.5% (膨胀) | 47.0 MB/s | 通过 | 包含完整 XML 元素标签与命名空间定义 |
 | **DataStore (Json + GZip 流压缩)** | 293.6 ms | 205.0 ms | 498.6 ms | **<font color="#d93025">1013.65 KB (1,037,980 B)</font>** | **<font color="#d93025">59.9%</font>** | 3.4 MB/s | 通过 | 纯文本经 GZip 流管道即时流式压缩 |
 | **DataStore (Jbin 原生内存 Raw 零拷贝)** | **<font color="#d93025">28.4 ms</font>** | **<font color="#d93025">30.1 ms</font>** | **<font color="#d93025">58.5 ms</font>** | **<font color="#d93025">1.19 MB (1,250,951 B)</font>** | **<font color="#d93025">51.6%</font>** | **<font color="#d93025">42.0 MB/s</font>** | 通过 | 基于 `Buffer.BlockCopy` 原生基元内存零拷贝映射，无额外压缩 |
-| **DataStore (Jbin 算法压缩: Gorilla 浮点 + FoR 整数)** | **<font color="#d93025">49.4 ms</font>** | **<font color="#d93025">31.1 ms</font>** | **<font color="#d93025">80.5 ms</font>** | **<font color="#d93025">899.42 KB (921,010 B)</font>** | **<font color="#d93025">64.4%</font>** | 17.8 MB/s | 通过 | **类型层专有算法**：`float[]` 运行 Gorilla 异或差分，`int[]` 运行 FoR 局部帧基准压缩 |
+| **DataStore (Jbin 紧凑模式)** | **<font color="#d93025">49.4 ms</font>** | **<font color="#d93025">31.1 ms</font>** | **<font color="#d93025">80.5 ms</font>** | **<font color="#d93025">899.42 KB (921,010 B)</font>** | **<font color="#d93025">64.4%</font>** | 17.8 MB/s | 通过 | **内置紧凑模式**：针对连续数值数组执行紧凑编码，自描述还原 |
 | **DataStore (Jbin + Deflate 流压缩)** | **<font color="#d93025">41.4 ms</font>** | **<font color="#d93025">9.1 ms</font>** | **<font color="#d93025">50.6 ms</font>** | **<font color="#d93025">782.66 KB (801,442 B)</font>** | **<font color="#d93025">69.0%</font>** | 18.4 MB/s | 通过 | **流管道层无损压缩**：通过 Deflate 紧凑流管道输出，略去 GZip 头尾校验结构 |
 | **DataStore (Jbin + GZip 流压缩)** | **<font color="#d93025">39.2 ms</font>** | **<font color="#d93025">9.3 ms</font>** | **<font color="#d93025">48.5 ms</font>** | **<font color="#d93025">782.68 KB (801,460 B)</font>** | **<font color="#d93025">69.0%</font>** | 19.5 MB/s | 通过 | **流管道层标准压缩**：连续二进制块经 GZip 管道输出，读取性能显著优于文本解析 |
-| **DataStore (Jbin 算法压缩 + GZip 复合管道)** | **<font color="#d93025">57.7 ms</font>** | **<font color="#d93025">19.8 ms</font>** | **<font color="#d93025">77.5 ms</font>** | **<font color="#d93025">696.47 KB (713,182 B)</font>** | **<font color="#d93025">72.4%</font>** | 11.8 MB/s | 通过 | **双层复合管道**：类型层先经 Gorilla/FoR 消除数值熵，物理流层再经 GZip 二次紧凑 |
+| **DataStore (Jbin 紧凑模式 + GZip 复合管道)** | **<font color="#d93025">57.7 ms</font>** | **<font color="#d93025">19.8 ms</font>** | **<font color="#d93025">77.5 ms</font>** | **<font color="#d93025">696.47 KB (713,182 B)</font>** | **<font color="#d93025">72.4%</font>** | 11.8 MB/s | 通过 | **双层复合管道**：内置紧凑编码配合物理流层 GZip 二次压缩 |
 
 #### 2. 数据集 B：超大业务实体对象集合与列式存储（结构化对象密集型集合）
 - **数据结构**：[`DeviceLogBatch`](samples/ApeFree.DataStore.BenchmarkDemo/Models/BigDataModels.cs)，包含 10,000 条结构化对象记录（`long Id`、`DateTime Timestamp`、`string DeviceId`、`string LogLevel`、`int StatusCode`、`double MetricValue`、`string Message`、`string TraceId`）。
@@ -394,21 +387,21 @@ await Task.WhenAll(tasks);
 | **DataStore (Json + GZip 流压缩)** | 114.4 ms | 149.5 ms | 263.9 ms | **<font color="#d93025">164.11 KB (168,051 B)</font>** | **<font color="#d93025">93.2%</font>** | 1.4 MB/s | 通过 | 行式文本经 GZip 管道即时流式压缩 |
 | **DataStore (Jbin 原生行式存储)** | 209.9 ms | 781.7 ms | 991.6 ms | 3.57 MB (3,739,555 B) | -52.1% (膨胀) | 17.0 MB/s | 通过 | 动态反射构建对象拓扑树 |
 | **DataStore (Jbin 列式存储 Transposition)** | 1063.1 ms | **<font color="#d93025">105.0 ms</font>** | 1168.1 ms | **<font color="#d93025">871.55 KB (892,471 B)</font>** | **<font color="#d93025">63.7%</font>** | 0.8 MB/s | 通过 | 经表达式树预编译转置引擎按列聚合为连续基元数组，消除属性名冗余 |
-| **DataStore (Jbin 列式 + 算法压缩: Simple8b/FoR/Gorilla)** | 821.3 ms | **<font color="#d93025">72.5 ms</font>** | 893.7 ms | **<font color="#d93025">769.82 KB (788,300 B)</font>** | **<font color="#d93025">67.9%</font>** | 0.9 MB/s | 通过 | **类型层专有算法**：`long[]` 列应用 Simple-8b，`int[]` 列应用 FoR，`double[]` 列应用 Gorilla，读取耗时优于原生 JSON 42.7% |
+| **DataStore (Jbin 列式紧凑编码)** | 821.3 ms | **<font color="#d93025">72.5 ms</font>** | 893.7 ms | **<font color="#d93025">769.82 KB (788,300 B)</font>** | **<font color="#d93025">67.9%</font>** | 0.9 MB/s | 通过 | **列式紧凑编码**：列式连续数组应用紧凑编码，读取耗时优于原生 JSON 42.7% |
 | **DataStore (Jbin 列式存储 + Deflate 流压缩)** | 454.2 ms | **<font color="#d93025">50.7 ms</font>** | 504.8 ms | **<font color="#d93025">125.00 KB (127,999 B)</font>** | **<font color="#d93025">94.8%</font>** | 0.3 MB/s | 通过 | **流管道层无损压缩**：列式连续内存块在 Deflate 管道中输出，无额外元数据开销 |
 | **DataStore (Jbin 列式存储 + GZip 流压缩)** | 351.4 ms | **<font color="#d93025">27.8 ms</font>** | 379.2 ms | **<font color="#d93025">125.02 KB (128,017 B)</font>** | **<font color="#d93025">94.8%</font>** | 0.3 MB/s | 通过 | **流管道层标准压缩**：列式连续内存块在 GZip 管道中体积缩减至 125 KB，读取耗时优于原生 JSON 78.0% |
 
 ---
 
-### 📊 基准测试报告 3：Jbin 专有压缩极致性能评测（理想数据形态 vs GZip 累赘实证）
+### 📊 基准测试报告 3：多通道时序数据高效持久化评测（DataStore 内置格式 vs 通用流压缩对比）
 
-> [!IMPORTANT]
+> [!NOTE]
 > **测试工程名称**：`ApeFree.DataStore.BenchmarkDemo`  
 > **工程物理路径**：[`samples/ApeFree.DataStore.BenchmarkDemo`](samples/ApeFree.DataStore.BenchmarkDemo/)  
 > **复现执行指令**：`dotnet run --project samples/ApeFree.DataStore.BenchmarkDemo -f net10.0-windows -- -j`  
 > **评测设计背景**：  
-> Jbin 是 ApeFree 生态独有的闭源高性能序列化技术，针对时序与基元数据内置全套领域压缩算法（Gorilla 浮点时序、FoR 整数基准帧、Simple-8b 64位整型位打包、Dictionary 字符串字典编码）。  
-> **核心验证课题**：在结构合适（面向列式或基元数组）的理想数据形态下，单用 Jbin 专有压缩即可达到体积与速度的黄金平衡。在此状态下叠加通用 GZip 流过滤器，**虽然能够微弱再抠出少许字节，但会导致 CPU 耗时大幅增加，边际收益极低，证明 GZip 属于多余累赘**。
+> 针对物联网与装备多通道时序数据采样场景，评测 DataStore 内置二进制格式（Jbin）直接存储与叠加通用流压缩过滤器（GZip）的性能表现。  
+> **核心验证课题**：在结构合适（面向时序或连续数值数组）的场景下，DataStore 内置二进制格式本身即可实现极高的读写速度与紧凑体积；若在此场景下额外叠加通用流压缩，由于边际压缩收益较低却大幅增加 CPU 耗时开销，反而得不偿失。
 
 #### 1. 测试数据集：工业物联网与装备多通道遥测数据集 (50,000 记录, IndustrialTelemetryDataset)
 - **数据结构**：包含 50,000 组时间戳（`long[] Timestamps`）、通道字（`int[] ChannelIds`）、状态码（`int[] StatusCodes`）、连续物理量（`float[] Temperatures, Pressures, Vibrations`）、高精度电压（`double[] Voltages`）以及离散工况描述（`string[] StatusDescriptions`）。
@@ -420,8 +413,8 @@ await Task.WhenAll(tasks);
 | **原生 XmlSerializer (标准 XML 格式)** | 151.0 ms | 397.3 ms | 548.3 ms | 11.23 MB (11,777,354 B) | -182.0% (膨胀) | 74.4 MB/s | 通过 | 标签元数据膨胀严重 |
 | **DataStore (Json + GZip 流压缩)** | 251.7 ms | 172.5 ms | 424.2 ms | **<font color="#d93025">1.13 MB (1,188,486 B)</font>** | **<font color="#d93025">71.5%</font>** | 4.5 MB/s | 通过 | 文本经 GZip 流压缩，耗时长且吞吐低 |
 | **DataStore (Jbin 原生二进制零拷贝 Raw)** | **<font color="#d93025">9.1 ms</font>** | **<font color="#d93025">7.9 ms</font>** | **<font color="#d93025">17.0 ms</font>** | **<font color="#d93025">1.91 MB (2,001,231 B)</font>** | **<font color="#d93025">52.1%</font>** | **<font color="#d93025">208.7 MB/s</font>** | 通过 | 基于内存块直接拷贝，极速吞吐 |
-| **DataStore (Jbin 闭源专有压缩: 算法级全开)** | **<font color="#d93025">32.0 ms</font>** | **<font color="#d93025">20.2 ms</font>** | **<font color="#d93025">52.1 ms</font>** | **<font color="#d93025">1.06 MB (1,114,165 B)</font>** | **<font color="#d93025">73.3%</font>** | **<font color="#d93025">33.2 MB/s</font>** | 通过 | **⭐ 独有黄金平衡点**：无任何外部流过滤器。体积较 Json+GZip 还要**更小 74 KB**，往返耗时较 Json+GZip **缩短 87.7%（提速 8.1 倍）**，自适应解析还原 |
-| **DataStore (Jbin 闭源专有压缩 + GZip 累赘对比)** | 59.4 ms | 22.9 ms | 82.3 ms | **<font color="#d93025">773.96 KB (792,538 B)</font>** | **<font color="#d93025">81.0%</font>** | 12.7 MB/s | 通过 | **实证累赘效应**：叠加 GZip 使写入耗时由 32.0ms **激增至 59.4ms (+85.6%)**，往返耗时由 52.1ms **增加至 82.3ms (+58.0%)**；体积仅额外多省 7.7%。在合适的数据结构下，GZip 属于耗时累赘 |
+| **DataStore (Jbin 紧凑模式)** | **<font color="#d93025">32.0 ms</font>** | **<font color="#d93025">20.2 ms</font>** | **<font color="#d93025">52.1 ms</font>** | **<font color="#d93025">1.06 MB (1,114,165 B)</font>** | **<font color="#d93025">73.3%</font>** | **<font color="#d93025">33.2 MB/s</font>** | 通过 | **⭐ 黄金平衡点**：无外部流过滤器。体积较 Json+GZip 还要更小 74 KB，往返耗时较 Json+GZip 缩短 87.7%（提速 8.1 倍），自适应解析还原 |
+| **DataStore (Jbin 紧凑模式 + GZip 流压缩)** | 59.4 ms | 22.9 ms | 82.3 ms | **<font color="#d93025">773.96 KB (792,538 B)</font>** | **<font color="#d93025">81.0%</font>** | 12.7 MB/s | 通过 | **开销实证**：叠加 GZip 使写入耗时由 32.0ms 增至 59.4ms (+85.6%)，往返耗时由 52.1ms 增加至 82.3ms (+58.0%)；体积仅额外微降 7.7%。在合适数据结构下，无需额外开启通用流压缩 |
 
 ---
 
@@ -429,7 +422,7 @@ await Task.WhenAll(tasks);
 
 - [🏛️ 核心架构与 Stream 装饰器管道原理 (Architecture.md)](docs/Architecture.md)
 - [⚡ 双缓冲因果写合并状态机数学推导 (Coalesce_Model.md)](docs/Coalesce_Model.md)
-- [🚀 Jbin 极限性能优化与零拷贝实践指南 (Jbin_Optimization.md)](docs/Jbin_Optimization.md)
+- [🚀 Jbin 二进制存储与零拷贝实践指南 (Jbin_Optimization.md)](docs/Jbin_Optimization.md)
 - [📖 快速上手与多介质代码速查 (QuickStart.md)](docs/QuickStart.md)
 
 ---

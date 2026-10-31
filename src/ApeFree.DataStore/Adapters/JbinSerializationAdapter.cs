@@ -45,21 +45,15 @@ namespace ApeFree.DataStore.Adapters
         }
 
         /// <summary>
-        /// 创建启用基元数值数组专用领域压缩算法与字符串字典压缩的 Jbin 适配器
-        /// 针对连续数值数组自动采用专用位压缩与时序算法：
-        /// - float[] / double[]: Gorilla 浮点时序压缩算法
-        /// - int[]: Frame of Reference (FoR) 基准帧差分压缩算法
-        /// - long[]: Simple-8b 紧凑位打包整数压缩算法
-        /// - short[]: Delta + BitPacking 差分压缩算法
-        /// - string[]: Dictionary 字符串字典压缩编码
+        /// 创建启用紧凑数值编码与字符串压缩配置的 Jbin 适配器
         /// </summary>
-        /// <param name="singleMode">单精度浮点数组压缩模式（默认 Gorilla）</param>
-        /// <param name="doubleMode">双精度浮点数组压缩模式（默认 Gorilla）</param>
-        /// <param name="int32Mode">32位整数数组压缩模式（默认 FrameOfReference）</param>
-        /// <param name="int64Mode">64位整数数组压缩模式（默认 Simple8b）</param>
-        /// <param name="int16Mode">16位短整数数组压缩模式（默认 DeltaBitPacking）</param>
-        /// <param name="stringMode">字符串数组压缩模式（默认 Dictionary 字典编码）</param>
-        /// <returns>配置了领域压缩算法的 Jbin 适配器实例</returns>
+        /// <param name="singleMode">单精度浮点数组压缩模式</param>
+        /// <param name="doubleMode">双精度浮点数组压缩模式</param>
+        /// <param name="int32Mode">32位整数数组压缩模式</param>
+        /// <param name="int64Mode">64位整数数组压缩模式</param>
+        /// <param name="int16Mode">16位短整数数组压缩模式</param>
+        /// <param name="stringMode">字符串数组压缩模式</param>
+        /// <returns>配置了压缩选项的 Jbin 适配器实例</returns>
         public static JbinSerializationAdapter CreateWithPrimitiveCompression(
             SingleArrayCompressMode singleMode = SingleArrayCompressMode.Gorilla,
             DoubleArrayCompressMode doubleMode = DoubleArrayCompressMode.Gorilla,

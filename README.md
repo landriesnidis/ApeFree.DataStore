@@ -310,6 +310,19 @@ await Task.WhenAll(tasks);
 
 ---
 
+## 🖥️ 演示工程与性能评测 (Samples & Benchmark)
+
+本项目在 `samples/` 目录下提供了现代化的基准评测与交互式演示工程：
+
+- [**`ApeFree.DataStore.BenchmarkDemo`**](samples/ApeFree.DataStore.BenchmarkDemo/)：**专业级性能基准与大数据存储评测系统（WinForms）**
+  - **界面 1：⚡ 高频配置读写对比**：直观对比高频配置修改场景下，`DataStore`（内置 `CoalesceMangedModel` 因果写合并调度器）相较于传统直接文件读写（`File.WriteAllText + JsonConvert`）的性能差异。提供写入耗时（降低 90%+）、物理刷盘次数（削减 98%+）、吞吐率（提升 6~50 倍）及并发锁冲突的详细对比。
+  - **界面 2：🚀 超大数据吞吐与压缩比对比**：
+    - **海量传感器与 3D 点云时序（连续基元值类型大数组）**：全方位横向对比原生 JSON、原生 XML、DataStore (Json + GZip)、DataStore (Jbin 零拷贝) 以及 DataStore (Jbin + GZip 极限压缩)。深度展示 Jbin 原生基元内存映射与二进制流压缩的强悍性能。
+    - **超大业务实体对象集合（对象密集型结构）**：展示 Jbin 的**列式存储（Columnar Storage - `TransposeToDictionary`）**能力，将海量实体对象按列聚合成物理连续数组，彻底消除属性名冗余，配合流压缩管道实现体积暴降 90%~95% 以上并极速还原。
+- [**`ApeFree.DataStore.Demo`**](samples/ApeFree.DataStore.Demo/)：基础 WinForms 数据实体增删改查与持久化示例。
+
+---
+
 ## 📚 延伸技术文档
 
 - [🏛️ 核心架构与 Stream 装饰器管道原理 (Architecture.md)](docs/Architecture.md)

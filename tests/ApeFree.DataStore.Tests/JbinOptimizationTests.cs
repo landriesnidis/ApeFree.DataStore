@@ -82,5 +82,54 @@ namespace ApeFree.DataStore.Tests
             Assert.AreEqual(original.Tags.Count, restored.Tags.Count);
             Assert.AreEqual("Val1", restored.Metadata["Key1"]);
         }
+
+        public class MockRecord
+        {
+            public long Id { get; set; }
+            public string Code { get; set; }
+            public double Value { get; set; }
+        }
+
+        [TestMethod]
+        public void TestJbinColumnarTranspositionAndRestoration()
+        {
+            const int count = 2000;
+            var list = new System.Collections.Generic.List<MockRecord>(count);
+            for (int i = 0; i < count; i++)
+            {
+                list.Add(new MockRecord { Id = i, Code = $"CODE_{i % 10}", Value = i * 1.5 });
+            }
+
+            // 行转列
+            var dict = ApeFree.Protocols.Json.Jbin.Extensions.JbinExtensions.TransposeToDictionary(list);
+            Assert.IsNotNull(dict);
+            Assert.IsTrue(dict.ContainsKey("Id"));
+            Assert.IsTrue(dict.ContainsKey("Code"));
+            Assert.IsTrue(dict.ContainsKey("Value"));
+
+            var adapter = new JbinSerializationAdapter();
+            byte[] bytes;
+            using (var ms = new MemoryStream())
+            {
+                adapter.Serialize(dict, ms);
+                bytes = ms.ToArray();
+            }
+
+            System.Collections.Generic.Dictionary<string, Array> restoredDict;
+            using (var ms = new MemoryStream(bytes))
+            {
+                restoredDict = adapter.Deserialize<System.Collections.Generic.Dictionary<string, Array>>(ms);
+            }
+
+            Assert.IsNotNull(restoredDict);
+
+            // 列转行
+            var restoredList = ApeFree.Protocols.Json.Jbin.Extensions.JbinExtensions.TransposeFromDictionary<MockRecord>(restoredDict);
+            Assert.IsNotNull(restoredList);
+            Assert.AreEqual(count, restoredList.Length);
+            Assert.AreEqual(list[0].Id, restoredList[0].Id);
+            Assert.AreEqual(list[100].Code, restoredList[100].Code);
+            Assert.AreEqual(list[count - 1].Value, restoredList[count - 1].Value, 0.0001);
+        }
     }
 }

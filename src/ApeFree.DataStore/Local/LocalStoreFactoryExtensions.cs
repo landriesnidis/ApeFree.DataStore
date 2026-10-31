@@ -13,10 +13,11 @@ namespace ApeFree.DataStore
         /// <typeparam name="T">存储对象类型</typeparam>
         /// <param name="_">工厂实例</param>
         /// <param name="settings">本地存储配置</param>
+        /// <param name="valueFactory">对象生成工厂函数</param>
         /// <returns>本地对象存储器实例</returns>
-        public static LocalStore<T> CreateLocalStore<T>(this StoreFactory _, LocalStoreAccessSettings settings) where T : class
+        public static LocalStore<T> CreateLocalStore<T>(this StoreFactory _, LocalStoreAccessSettings settings, System.Func<T> valueFactory = null) where T : class
         {
-            return new LocalStore<T>(settings);
+            return new LocalStore<T>(settings, valueFactory);
         }
 
         /// <summary>

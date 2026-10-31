@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFrameworks>net8.0-windows;net10.0-windows</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>ApeFree.DataStore.BenchmarkDemo</RootNamespace>
+    <AssemblyName>ApeFree.DataStore.BenchmarkDemo</AssemblyName>
+    <RollForward>LatestMajor</RollForward>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <NoWarn>$(NoWarn);CA1416;0618</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ApeFree.DataStore\ApeFree.DataStore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ApeFree.Protocols.Json" Version="0.0.4.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="STTech.CodePlus" Version="1.7.7" />
+  </ItemGroup>
+
+</Project>

@@ -52,7 +52,7 @@ namespace ApeFree.DataStore.Tests
         }
 
         [TestMethod]
-        public void TestJbinPrimitiveSpecializedCompression()
+        public void TestJbinPrimitiveCompression()
         {
             var settings = ApeFree.Protocols.Json.Jbin.JbinObject.JsonSerializerSettings;
             var conv = settings.Converters.OfType<ApeFree.Protocols.Json.Jbin.JbinPrimitiveArrayConverter>().FirstOrDefault();
@@ -197,7 +197,7 @@ namespace ApeFree.DataStore.Tests
         }
 
         [TestMethod]
-        public void TestIndustrialTelemetryFullSpecializedCompression()
+        public void TestIndustrialTelemetryCompression()
         {
             const int count = 2000;
             var rand = new Random(42);
@@ -232,7 +232,7 @@ namespace ApeFree.DataStore.Tests
             }
 
             Assert.IsTrue(bytes.Length > 0, "序列化字节流不能为空");
-            Console.WriteLine($"Telemetry ({count} items) with full specialized compression size: {bytes.Length} bytes");
+            Console.WriteLine($"Telemetry ({count} items) with compression size: {bytes.Length} bytes");
         }
     }
 }

@@ -1,76 +1,60 @@
-﻿using ApeFree.DataStore.Core;
-using Microsoft.Win32;
 using System;
 using System.IO;
+using ApeFree.DataStore.Core;
+using Microsoft.Win32;
 
 namespace ApeFree.DataStore.Registry
 {
     /// <summary>
-    /// 注册表(对象)储存器
+    /// Windows 注册表对象存储器
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">存储对象类型</typeparam>
     public class RegistryStore<T> : Store<T, RegistryStoreAccessSettings> where T : class
     {
         private static readonly RegistryView registryView
             = Environment.Is64BitOperatingSystem ? RegistryView.Registry64 : RegistryView.Registry32;
 
-        /// <summary>
-        /// 构造注册表(对象)储存器
-        /// </summary>
-        /// <param name="settings"></param>
-        /// <param name="valueFactory"></param>
-        public RegistryStore(RegistryStoreAccessSettings settings, Func<T> valueFactory = null) : base(settings, valueFactory) { }
+        public RegistryStore(RegistryStoreAccessSettings settings, Func<T> valueFactory = null)
+            : base(settings, valueFactory) { }
 
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
         protected override void OnLoad()
         {
             using (var rklm = RegistryKey.OpenBaseKey(AccessSettings.BaseKey, registryView))
+            using (var rk = rklm.OpenSubKey(AccessSettings.Path, false))
             {
-                var rk = rklm.OpenSubKey(AccessSettings.Path, true);
                 if (rk != null)
                 {
-                    using (rk)
+                    if (rk.GetValue(AccessSettings.Key) is byte[] bytes && bytes.Length > 0)
                     {
-                        var bytes = (byte[])rk.GetValue(AccessSettings.Key);
-                        if (bytes != null)
+                        using (var ms = new MemoryStream(bytes, false))
                         {
-                            OnReadStream(new MemoryStream(bytes));
+                            ReadFromStream(ms);
                         }
                     }
                 }
             }
         }
 
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
         protected override void OnSave()
         {
-            OnWriteStream(stream =>
+            using (var ms = new MemoryStream())
             {
-                using (MemoryStream memoryStream = new MemoryStream())
+                WriteToStream(ms);
+                var bytes = ms.ToArray();
+
+                using (var rklm = RegistryKey.OpenBaseKey(AccessSettings.BaseKey, registryView))
                 {
-                    stream.CopyTo(memoryStream);
-                    var bytes = memoryStream.ToArray();
-
-                    using (var rklm = RegistryKey.OpenBaseKey(AccessSettings.BaseKey, registryView))
+                    using (var rk = rklm.CreateSubKey(AccessSettings.Path))
                     {
-                        var rk = rklm.OpenSubKey(AccessSettings.Path, true);
-                        if (rk == null)
-                        {
-                            rk = rklm.CreateSubKey(AccessSettings.Path);
-                        }
-
-                        using (rk)
+                        if (rk != null)
                         {
                             rk.SetValue(AccessSettings.Key, bytes, RegistryValueKind.Binary);
                         }
                     }
                 }
-            });
+            }
         }
-
     }
 }

@@ -1,56 +1,39 @@
-﻿using ApeFree.DataStore.Core;
 using System;
 using System.IO;
+using ApeFree.DataStore.Core;
 
 namespace ApeFree.DataStore.RedisStore
 {
     /// <summary>
-    /// Redis存储器
+    /// Redis 对象存储器
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">存储对象类型</typeparam>
     public class RedisStore<T> : Store<T, RedisStoreAccessSettings> where T : class
     {
-        /// <summary>
-        /// 构造Redis存储器
-        /// </summary>
-        /// <param name="settings"></param>
-        /// <param name="valueFactory"></param>
-        public RedisStore(RedisStoreAccessSettings settings, Func<T> valueFactory = null) : base(settings, valueFactory)
-        { }
+        public RedisStore(RedisStoreAccessSettings settings, Func<T> valueFactory = null)
+            : base(settings, valueFactory) { }
 
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
         protected override void OnLoad()
         {
             byte[] bytes = AccessSettings.Client.Get(AccessSettings.Key);
-            if (bytes != null)
+            if (bytes != null && bytes.Length > 0)
             {
-                OnReadStream(new MemoryStream(bytes));
+                using (var ms = new MemoryStream(bytes, false))
+                {
+                    ReadFromStream(ms);
+                }
             }
         }
 
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
         protected override void OnSave()
         {
-            OnWriteStream(stream =>
+            using (var ms = new MemoryStream())
             {
-                MemoryStream memoryStream;
-                if (stream is MemoryStream)
-                {
-                    memoryStream = stream as MemoryStream;
-                }
-                else
-                {
-                    memoryStream = new MemoryStream();
-                    stream.CopyTo(memoryStream);
-                }
-
-                var bytes = memoryStream.ToArray();
-                AccessSettings.Client.Set(AccessSettings.Key, bytes);
-            });
+                WriteToStream(ms);
+                AccessSettings.Client.Set(AccessSettings.Key, ms.ToArray());
+            }
         }
     }
 }

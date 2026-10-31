@@ -1,63 +1,46 @@
-﻿using ApeFree.DataStore.Core;
-using ApeFree.DataStore.IO;
-using STTech.CodePlus.Threading;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using ApeFree.DataStore.Core;
 
 namespace ApeFree.DataStore.Local
 {
     /// <summary>
-    /// 本地存储器
+    /// 本地文件对象存储器
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">存储对象类型</typeparam>
     public class LocalStore<T> : Store<T, LocalStoreAccessSettings> where T : class
     {
-        public LocalStore(LocalStoreAccessSettings accessSettings, Func<T> valueFactory = null) : base(accessSettings, valueFactory) { }
+        public LocalStore(LocalStoreAccessSettings accessSettings, Func<T> valueFactory = null)
+            : base(accessSettings, valueFactory) { }
 
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
         protected override void OnLoad()
         {
             var path = AccessSettings.SavePath;
 
             if (File.Exists(path))
             {
-                using (var steam = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    OnReadStream(steam);
+                    ReadFromStream(fs);
                 }
             }
         }
 
-        /// <summary>
         /// <inheritdoc/>
-        /// </summary>
         protected override void OnSave()
         {
             var path = AccessSettings.SavePath;
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            OnWriteStream(stream =>
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             {
-                // TODO: 此处应使用文件流写入
+                Directory.CreateDirectory(dir);
+            }
 
-                MemoryStream memoryStream;
-                if (stream is MemoryStream)
-                {
-                    memoryStream = stream as MemoryStream;
-                }
-                else
-                {
-                    memoryStream = new MemoryStream();
-                    stream.CopyTo(memoryStream);
-                }
-                File.WriteAllBytes(path, memoryStream.ToArray());
-            });
+            using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                WriteToStream(fs);
+            }
         }
     }
 }

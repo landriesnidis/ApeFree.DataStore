@@ -52,6 +52,48 @@ namespace ApeFree.DataStore.Tests
         }
 
         [TestMethod]
+        public void TestJbinPrimitiveSpecializedCompression()
+        {
+            var settings = ApeFree.Protocols.Json.Jbin.JbinObject.JsonSerializerSettings;
+            var conv = settings.Converters.OfType<ApeFree.Protocols.Json.Jbin.JbinPrimitiveArrayConverter>().FirstOrDefault();
+            Assert.IsNotNull(conv);
+            conv.SingleMode = ApeFree.Protocols.Json.Jbin.SingleArrayCompressMode.Gorilla;
+            conv.Int32Mode = ApeFree.Protocols.Json.Jbin.Int32ArrayCompressMode.FrameOfReference;
+
+            const int arraySize = 10000;
+            var bigData = new BigDataModel
+            {
+                Title = "时序压缩测试",
+                SensorData = Enumerable.Range(0, arraySize).Select(i => (float)(i * 0.1)).ToArray(),
+                MatrixIndices = Enumerable.Range(0, arraySize).Select(i => 1000 + (i % 50)).ToArray(),
+                Timestamp = DateTime.UtcNow
+            };
+
+            var adapter = new JbinSerializationAdapter(settings);
+            byte[] bytes;
+            using (var ms = new MemoryStream())
+            {
+                adapter.Serialize(bigData, ms);
+                bytes = ms.ToArray();
+            }
+
+            Assert.IsTrue(bytes.Length > 0);
+
+            // 自适应反序列化测试：默认 adapter 根据帧中 ModeId 自适应解压缩
+            var defaultAdapter = new JbinSerializationAdapter();
+            BigDataModel restored;
+            using (var ms = new MemoryStream(bytes))
+            {
+                restored = defaultAdapter.Deserialize<BigDataModel>(ms);
+            }
+
+            Assert.IsNotNull(restored);
+            Assert.AreEqual(arraySize, restored.SensorData.Length);
+            Assert.AreEqual(bigData.SensorData[123], restored.SensorData[123], 0.0001f);
+            Assert.AreEqual(bigData.MatrixIndices[123], restored.MatrixIndices[123]);
+        }
+
+        [TestMethod]
         public void TestJbinPolymorphicAndComplexObject()
         {
             var adapter = new JbinSerializationAdapter();

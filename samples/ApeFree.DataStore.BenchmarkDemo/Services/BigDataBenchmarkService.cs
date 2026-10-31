@@ -10,6 +10,7 @@ using ApeFree.DataStore.BenchmarkDemo.Models;
 using ApeFree.DataStore.Core;
 using ApeFree.DataStore.Filters;
 using ApeFree.DataStore.Local;
+using ApeFree.Protocols.Json.Jbin;
 using Newtonsoft.Json;
 
 namespace ApeFree.DataStore.BenchmarkDemo.Services
@@ -260,7 +261,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
 
                     return new BigDataBenchmarkResult
                     {
-                        StrategyName = "ApeFree.DataStore (Jbin 混合二进制零拷贝)",
+                        StrategyName = "ApeFree.DataStore (Jbin 原生连续内存 Raw)",
                         DatasetType = "海量点云基元数组",
                         ElementCount = pointCount,
                         WriteElapsedMs = writeMs,
@@ -269,12 +270,103 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                         SizeReductionPercent = reduction,
                         WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
                         IsVerified = verified,
-                        Notes = "⚡ Jbin 原生基元零拷贝内存映射：彻底免除数字转字符串损耗，极速写盘"
+                        Notes = "原生基元零拷贝内存映射：无字符串开销，纯连续内存块快速写盘"
                     };
                 }),
 
-                // 5. ApeFree.DataStore + Jbin + GZip 流压缩
-                new BenchmarkStep("ApeFree.DataStore (Jbin + GZip 混合极限压缩)", () =>
+                // 5. ApeFree.DataStore + Jbin (针对不同值类型的专用算法压缩：float/double 采用 Gorilla，int 采用 FoR)
+                new BenchmarkStep("ApeFree.DataStore (Jbin 算法压缩: Gorilla 浮点 + FoR 整数)", () =>
+                {
+                    string path = Path.Combine(tempDir, "pointcloud_datastore_jbin_alg.jbin");
+                    var settings = new LocalStoreAccessSettings(path)
+                    {
+                        SerializationAdapter = JbinSerializationAdapter.CreateWithPrimitiveCompression(
+                            singleMode: SingleArrayCompressMode.Gorilla,
+                            doubleMode: DoubleArrayCompressMode.Gorilla,
+                            int32Mode: Int32ArrayCompressMode.FrameOfReference)
+                    };
+
+                    var store = StoreFactory.Factory.CreateLocalStore<PointCloudDataset>(settings, () => dataset);
+
+                    var sw = Stopwatch.StartNew();
+                    store.Load();
+                    sw.Stop();
+                    double writeMs = sw.Elapsed.TotalMilliseconds;
+                    long size = new FileInfo(path).Length;
+
+                    var readStore = StoreFactory.Factory.CreateLocalStore<PointCloudDataset>(settings);
+                    sw.Restart();
+                    readStore.Load();
+                    sw.Stop();
+                    double readMs = sw.Elapsed.TotalMilliseconds;
+
+                    bool verified = readStore.Value != null && readStore.Value.TotalPoints == pointCount &&
+                                    Math.Abs(readStore.Value.PositionsX[0] - dataset.PositionsX[0]) < 0.001f &&
+                                    Math.Abs(readStore.Value.PositionsZ[pointCount - 1] - dataset.PositionsZ[pointCount - 1]) < 0.001f;
+
+                    double reduction = baselineJsonSize > 0 ? (1.0 - (double)size / baselineJsonSize) * 100.0 : 0;
+
+                    return new BigDataBenchmarkResult
+                    {
+                        StrategyName = "ApeFree.DataStore (Jbin 算法压缩: Gorilla 浮点 + FoR 整数)",
+                        DatasetType = "海量点云基元数组",
+                        ElementCount = pointCount,
+                        WriteElapsedMs = writeMs,
+                        ReadElapsedMs = readMs,
+                        FileSizeBytes = size,
+                        SizeReductionPercent = reduction,
+                        WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
+                        IsVerified = verified,
+                        Notes = "纯算法压缩（无流过滤器）：针对不同值类型分别应用 Gorilla 浮点 XOR 差分与 FoR 整数帧差分算法"
+                    };
+                }),
+
+                // 6. ApeFree.DataStore + Jbin + Deflate 流压缩
+                new BenchmarkStep("ApeFree.DataStore (Jbin + Deflate 流压缩)", () =>
+                {
+                    string path = Path.Combine(tempDir, "pointcloud_datastore_jbin_deflate.dat");
+                    var settings = new LocalStoreAccessSettings(path)
+                    {
+                        SerializationAdapter = new JbinSerializationAdapter()
+                    };
+                    settings.StreamFilters.Add(new DeflateStreamFilter());
+
+                    var store = StoreFactory.Factory.CreateLocalStore<PointCloudDataset>(settings, () => dataset);
+
+                    var sw = Stopwatch.StartNew();
+                    store.Load();
+                    sw.Stop();
+                    double writeMs = sw.Elapsed.TotalMilliseconds;
+                    long size = new FileInfo(path).Length;
+
+                    var readStore = StoreFactory.Factory.CreateLocalStore<PointCloudDataset>(settings);
+                    sw.Restart();
+                    readStore.Load();
+                    sw.Stop();
+                    double readMs = sw.Elapsed.TotalMilliseconds;
+
+                    bool verified = readStore.Value != null && readStore.Value.TotalPoints == pointCount &&
+                                    Math.Abs(readStore.Value.PositionsX[0] - dataset.PositionsX[0]) < 0.001f;
+
+                    double reduction = baselineJsonSize > 0 ? (1.0 - (double)size / baselineJsonSize) * 100.0 : 0;
+
+                    return new BigDataBenchmarkResult
+                    {
+                        StrategyName = "ApeFree.DataStore (Jbin + Deflate 流压缩)",
+                        DatasetType = "海量点云基元数组",
+                        ElementCount = pointCount,
+                        WriteElapsedMs = writeMs,
+                        ReadElapsedMs = readMs,
+                        FileSizeBytes = size,
+                        SizeReductionPercent = reduction,
+                        WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
+                        IsVerified = verified,
+                        Notes = "基于 Deflate 无损压缩流管道，略去头部元数据封装，体积紧凑"
+                    };
+                }),
+
+                // 7. ApeFree.DataStore + Jbin + GZip 流压缩
+                new BenchmarkStep("ApeFree.DataStore (Jbin + GZip 流压缩)", () =>
                 {
                     string path = Path.Combine(tempDir, "pointcloud_datastore_jbin_gzip.dat");
                     var settings = new LocalStoreAccessSettings(path)
@@ -304,7 +396,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
 
                     return new BigDataBenchmarkResult
                     {
-                        StrategyName = "ApeFree.DataStore (Jbin + GZip 混合极限压缩)",
+                        StrategyName = "ApeFree.DataStore (Jbin + GZip 流压缩)",
                         DatasetType = "海量点云基元数组",
                         ElementCount = pointCount,
                         WriteElapsedMs = writeMs,
@@ -314,6 +406,53 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                         WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
                         IsVerified = verified,
                         Notes = "连续二进制数据块经 GZip 流管道压缩，兼顾存储体积与反序列化读取速度"
+                    };
+                }),
+
+                // 8. ApeFree.DataStore + Jbin 算法压缩 + GZip 复合管道
+                new BenchmarkStep("ApeFree.DataStore (Jbin 算法压缩 + GZip 复合管道)", () =>
+                {
+                    string path = Path.Combine(tempDir, "pointcloud_datastore_jbin_alg_gzip.dat");
+                    var settings = new LocalStoreAccessSettings(path)
+                    {
+                        SerializationAdapter = JbinSerializationAdapter.CreateWithPrimitiveCompression(
+                            singleMode: SingleArrayCompressMode.Gorilla,
+                            doubleMode: DoubleArrayCompressMode.Gorilla,
+                            int32Mode: Int32ArrayCompressMode.FrameOfReference)
+                    };
+                    settings.StreamFilters.Add(new GZipStreamFilter());
+
+                    var store = StoreFactory.Factory.CreateLocalStore<PointCloudDataset>(settings, () => dataset);
+
+                    var sw = Stopwatch.StartNew();
+                    store.Load();
+                    sw.Stop();
+                    double writeMs = sw.Elapsed.TotalMilliseconds;
+                    long size = new FileInfo(path).Length;
+
+                    var readStore = StoreFactory.Factory.CreateLocalStore<PointCloudDataset>(settings);
+                    sw.Restart();
+                    readStore.Load();
+                    sw.Stop();
+                    double readMs = sw.Elapsed.TotalMilliseconds;
+
+                    bool verified = readStore.Value != null && readStore.Value.TotalPoints == pointCount &&
+                                    Math.Abs(readStore.Value.PositionsX[0] - dataset.PositionsX[0]) < 0.001f;
+
+                    double reduction = baselineJsonSize > 0 ? (1.0 - (double)size / baselineJsonSize) * 100.0 : 0;
+
+                    return new BigDataBenchmarkResult
+                    {
+                        StrategyName = "ApeFree.DataStore (Jbin 算法压缩 + GZip 复合管道)",
+                        DatasetType = "海量点云基元数组",
+                        ElementCount = pointCount,
+                        WriteElapsedMs = writeMs,
+                        ReadElapsedMs = readMs,
+                        FileSizeBytes = size,
+                        SizeReductionPercent = reduction,
+                        WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
+                        IsVerified = verified,
+                        Notes = "双重压缩：类型层执行基元专用压缩 (Gorilla + FoR)，物理流层执行 GZip 管道二次压缩"
                     };
                 })
             };
@@ -571,7 +710,102 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                     };
                 }),
 
-                // 6. ApeFree.DataStore + Jbin 列式存储 + GZip 流压缩管道
+                // 6. ApeFree.DataStore + Jbin 列式存储 + 专用基元算法压缩 (long 采用 Simple-8b, int 采用 FoR, double 采用 Gorilla)
+                new BenchmarkStep("ApeFree.DataStore (Jbin 列式存储 + 算法压缩: Simple8b/FoR/Gorilla)", () =>
+                {
+                    string path = Path.Combine(tempDir, "objects_datastore_jbin_columnar_alg.jbin");
+                    var settings = new LocalStoreAccessSettings(path)
+                    {
+                        SerializationAdapter = JbinSerializationAdapter.CreateWithPrimitiveCompression(
+                            singleMode: SingleArrayCompressMode.Gorilla,
+                            doubleMode: DoubleArrayCompressMode.Gorilla,
+                            int32Mode: Int32ArrayCompressMode.FrameOfReference,
+                            int64Mode: Int64ArrayCompressMode.Simple8b)
+                    };
+
+                    var columnarBatch = ColumnarDeviceLogBatch.FromRowBatch(batch);
+                    var store = StoreFactory.Factory.CreateLocalStore<ColumnarDeviceLogBatch>(settings, () => columnarBatch);
+
+                    var sw = Stopwatch.StartNew();
+                    store.Load();
+                    sw.Stop();
+                    double writeMs = sw.Elapsed.TotalMilliseconds;
+                    long size = new FileInfo(path).Length;
+
+                    var readStore = StoreFactory.Factory.CreateLocalStore<ColumnarDeviceLogBatch>(settings);
+                    sw.Restart();
+                    readStore.Load();
+                    var restoredRecords = readStore.Value.RestoreToRecords();
+                    sw.Stop();
+                    double readMs = sw.Elapsed.TotalMilliseconds;
+
+                    bool verified = restoredRecords != null && restoredRecords.Count == recordCount &&
+                                    restoredRecords[0].DeviceId == batch.Records[0].DeviceId;
+
+                    double reduction = baselineJsonSize > 0 ? (1.0 - (double)size / baselineJsonSize) * 100.0 : 0;
+
+                    return new BigDataBenchmarkResult
+                    {
+                        StrategyName = "ApeFree.DataStore (Jbin 列式存储 + 算法压缩: Simple8b/FoR/Gorilla)",
+                        DatasetType = "超大对象集合",
+                        ElementCount = recordCount,
+                        WriteElapsedMs = writeMs,
+                        ReadElapsedMs = readMs,
+                        FileSizeBytes = size,
+                        SizeReductionPercent = reduction,
+                        WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
+                        IsVerified = verified,
+                        Notes = "列式属性数组应用专用位压缩：Id列用Simple8b，状态码用FoR，指标数值用Gorilla"
+                    };
+                }),
+
+                // 7. ApeFree.DataStore + Jbin 列式存储 + Deflate 流压缩管道
+                new BenchmarkStep("ApeFree.DataStore (Jbin 列式存储 + Deflate 流压缩)", () =>
+                {
+                    string path = Path.Combine(tempDir, "objects_datastore_jbin_columnar_deflate.dat");
+                    var settings = new LocalStoreAccessSettings(path)
+                    {
+                        SerializationAdapter = new JbinSerializationAdapter()
+                    };
+                    settings.StreamFilters.Add(new DeflateStreamFilter());
+
+                    var columnarBatch = ColumnarDeviceLogBatch.FromRowBatch(batch);
+                    var store = StoreFactory.Factory.CreateLocalStore<ColumnarDeviceLogBatch>(settings, () => columnarBatch);
+
+                    var sw = Stopwatch.StartNew();
+                    store.Load();
+                    sw.Stop();
+                    double writeMs = sw.Elapsed.TotalMilliseconds;
+                    long size = new FileInfo(path).Length;
+
+                    var readStore = StoreFactory.Factory.CreateLocalStore<ColumnarDeviceLogBatch>(settings);
+                    sw.Restart();
+                    readStore.Load();
+                    var restoredRecords = readStore.Value.RestoreToRecords();
+                    sw.Stop();
+                    double readMs = sw.Elapsed.TotalMilliseconds;
+
+                    bool verified = restoredRecords != null && restoredRecords.Count == recordCount &&
+                                    restoredRecords[0].DeviceId == batch.Records[0].DeviceId;
+
+                    double reduction = baselineJsonSize > 0 ? (1.0 - (double)size / baselineJsonSize) * 100.0 : 0;
+
+                    return new BigDataBenchmarkResult
+                    {
+                        StrategyName = "ApeFree.DataStore (Jbin 列式存储 + Deflate 流压缩)",
+                        DatasetType = "超大对象集合",
+                        ElementCount = recordCount,
+                        WriteElapsedMs = writeMs,
+                        ReadElapsedMs = readMs,
+                        FileSizeBytes = size,
+                        SizeReductionPercent = reduction,
+                        WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
+                        IsVerified = verified,
+                        Notes = "列式连续内存块经 Deflate 管道流式压缩，体积精简"
+                    };
+                }),
+
+                // 8. ApeFree.DataStore + Jbin 列式存储 + GZip 流压缩管道
                 new BenchmarkStep("ApeFree.DataStore (Jbin 列式存储 + GZip 极限压缩)", () =>
                 {
                     string path = Path.Combine(tempDir, "objects_datastore_jbin_columnar_gzip.dat");

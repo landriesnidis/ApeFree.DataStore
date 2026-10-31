@@ -1,11 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace ApeFree.DataStore.IO
 {
     /// <summary>
-    /// 合并管理模型
+    /// 双缓冲读写因果合并管理模型（Coalesce Managed Model）
+    /// 在高频并发场景下将连续写入合并为单次落盘，同时严格保证读写因果时序一致性。
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class CoalesceMangedModel<T> : IReadWriteMangedModel<T>
@@ -14,16 +15,12 @@ namespace ApeFree.DataStore.IO
         internal TaskGroup standbyTaskGroup = new TaskGroup();
         private readonly object queueLocker = new object();
 
+        /// <inheritdoc/>
         public EventItem<T> Dequeue()
         {
-            if (currentTaskGroup.IsEmpty && standbyTaskGroup.IsEmpty)
-            {
-                return null;
-            }
-
             lock (queueLocker)
             {
-                // 2.整理Group*2
+                // 若当前批次已清空，翻转备用批次为当前批次（双缓冲翻转）
                 if (currentTaskGroup.IsEmpty)
                 {
                     var temp = currentTaskGroup;
@@ -31,134 +28,129 @@ namespace ApeFree.DataStore.IO
                     standbyTaskGroup = temp;
                 }
 
-                // 1.返回任务Item
                 if (!currentTaskGroup.IsEmpty)
                 {
+                    // 组内写操作优先于读操作
                     if (!currentTaskGroup.IsWriteTaskEmpty)
                     {
                         return (EventItem<T>)currentTaskGroup.GetWriteTask();
                     }
-                    else if (!currentTaskGroup.IsReadTaskEmpty)
+                    if (!currentTaskGroup.IsReadTaskEmpty)
                     {
                         return (EventItem<T>)currentTaskGroup.GetReadTask();
                     }
-                    else
-                    {
-                        throw new InvalidOperationException("整理Group出问题了才后走到这里！");
-                    }
-                }
-                else
-                {
-                    return null;
                 }
 
+                return null;
             }
         }
 
-        public void Enqueue(EventItem item, Action blockBeforeHandler)
+        /// <inheritdoc/>
+        public Task EnqueueAsync(EventItem item, Action ensureConsumerRunning)
         {
-            AutoResetEvent evt;
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
             lock (queueLocker)
             {
-
                 if (item.EventType == ReadWriteEventType.Read)
                 {
+                    // 若备用组已存在写任务，说明当前读操作发生在写操作之后；
+                    // 为保证 Read-Your-Writes 因果一致性，读操作必须跟随进入备用组。
                     if (!standbyTaskGroup.IsWriteTaskEmpty)
                     {
-                        evt = standbyTaskGroup.Join(item);
+                        standbyTaskGroup.Join(item, tcs);
                     }
                     else
                     {
-                        evt = currentTaskGroup.Join(item);
+                        currentTaskGroup.Join(item, tcs);
                     }
                 }
-                else
+                else // Write
                 {
+                    // 若当前组已有写任务，直接加入当前组覆盖旧写（写折叠）
                     if (!currentTaskGroup.IsWriteTaskEmpty)
                     {
-                        evt = currentTaskGroup.Join(item);
+                        currentTaskGroup.Join(item, tcs);
                     }
                     else
                     {
-                        if (currentTaskGroup.IsReadTaskEmpty)
+                        // 若当前组已有排队的读任务，为避免写优先于读破坏先读后写的语义，将写放入备用组
+                        if (!currentTaskGroup.IsReadTaskEmpty)
                         {
-                            evt = currentTaskGroup.Join(item);
+                            standbyTaskGroup.Join(item, tcs);
                         }
                         else
                         {
-                            evt = standbyTaskGroup.Join(item);
+                            currentTaskGroup.Join(item, tcs);
                         }
                     }
                 }
             }
-            blockBeforeHandler?.Invoke();
-            evt.WaitOne();
+
+            ensureConsumerRunning?.Invoke();
+            return tcs.Task;
         }
     }
 
+    /// <summary>
+    /// 任务组（原子操作批次）
+    /// </summary>
     internal class TaskGroup
     {
         private EventItem writeTask;
         private EventItem readTask;
-
-        private readonly AutoResetEvent readResetEvent = new AutoResetEvent(false);
-        private readonly AutoResetEvent writeResetEvent = new AutoResetEvent(false);
-        internal List<AutoResetEvent> writeResetEvents = new List<AutoResetEvent>();
-        internal List<AutoResetEvent> readResetEvents = new List<AutoResetEvent>();
+        private readonly List<TaskCompletionSource<bool>> writeCompletionSources = new List<TaskCompletionSource<bool>>();
+        private readonly List<TaskCompletionSource<bool>> readCompletionSources = new List<TaskCompletionSource<bool>>();
 
         public bool IsEmpty => writeTask == null && readTask == null;
         public bool IsWriteTaskEmpty => writeTask == null;
         public bool IsReadTaskEmpty => readTask == null;
 
-        public AutoResetEvent Join(EventItem item)
+        public void Join(EventItem item, TaskCompletionSource<bool> tcs)
         {
-
             if (item.EventType == ReadWriteEventType.Write)
             {
-                lock (writeResetEvents)
+                lock (writeCompletionSources)
                 {
-                    writeResetEvents.Add(writeResetEvent);
-                    // 覆盖旧值，阻塞
+                    writeCompletionSources.Add(tcs);
+                    // 覆盖前序写任务（只落盘最新状态）
                     writeTask = item;
-                    item.ResetEvents = writeResetEvents;
-                    return writeResetEvent;
+                    item.CompletionSources.Clear();
+                    item.CompletionSources.AddRange(writeCompletionSources);
                 }
             }
             else
             {
-                lock (readResetEvents)
+                lock (readCompletionSources)
                 {
-                    readResetEvents.Add(readResetEvent);
-                    // 阻塞
+                    readCompletionSources.Add(tcs);
                     readTask = item;
-                    item.ResetEvents = readResetEvents;
-                    return readResetEvent;
+                    item.CompletionSources.Clear();
+                    item.CompletionSources.AddRange(readCompletionSources);
                 }
             }
-
         }
 
-        /// <summary>
-        /// 获取写操作
-        /// </summary>
-        /// <returns></returns>
         public EventItem GetWriteTask()
         {
-            var result = writeTask;
-            writeTask = null;
-            return result;
+            lock (writeCompletionSources)
+            {
+                var result = writeTask;
+                writeTask = null;
+                writeCompletionSources.Clear();
+                return result;
+            }
         }
 
-        /// <summary>
-        /// 获取读操作
-        /// </summary>
-        /// <returns></returns>
         public EventItem GetReadTask()
         {
-            var result = readTask;
-            readTask = null;
-            return result;
+            lock (readCompletionSources)
+            {
+                var result = readTask;
+                readTask = null;
+                readCompletionSources.Clear();
+                return result;
+            }
         }
-
     }
 }

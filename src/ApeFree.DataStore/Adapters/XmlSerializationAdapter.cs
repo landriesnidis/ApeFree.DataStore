@@ -26,7 +26,7 @@ namespace ApeFree.DataStore.Adapters
         private XmlSerializer GetSerializer(Type type)
         {
             return serializerCache.GetOrAdd(type, t =>
-                string.IsNullOrEmpty(RootName) ? new XmlSerializer(t) : new XmlSerializer(t, RootName));
+                string.IsNullOrEmpty(RootName) ? new XmlSerializer(t) : new XmlSerializer(t, new XmlRootAttribute(RootName)));
         }
 
         /// <inheritdoc/>

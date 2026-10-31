@@ -56,7 +56,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Views
   2. \b 冗余的键名重复\b0 ：包含数万个对象的集合中，每个对象都会重复输出 \f1 ""Id""\f0 、\f1 ""Timestamp""\f0 、\f1 ""DeviceId""\f0  等键名字符串，产生数兆至数十兆的无效冗余；\par
   3. \b CPU 字符串格式化瓶颈\b0 ：百万级数值转换为字符串及反向解析将耗尽 CPU 算力，并引发大量的字符串分配与 GC LOH 大对象堆碎片停顿。\par
 \par
-\cf4 \b \bullet  Jbin 混合协议与 ApeFree.DataStore 流管道的降维打击:\b0\par
+\cf4 \b \bullet  Jbin 混合协议与 ApeFree.DataStore 流管道的技术设计:\b0\par
 \cf2   1. \b 结构与负载分离 (JSON 骨架 + 二进制数据块池)\b0 ：对象拓扑用轻量 JSON 表示，大数组直接剥离为独立的 \f1 DataBlocks\f0 ；\par
   2. \b 基元数组零拷贝内存映射 (Zero-Copy BlockCopy)\b0 ：针对 \f1 float[]\f0 、\f1 double[]\f0 、\f1 int[]\f0  等值类型大数组，直接利用连续内存块读写，写入性能比普通 JSON 快 5~10 倍；\par
   3. \b 高性能列式存储转置 (TransposeToDictionary)\b0 ：针对超大业务实体对象集合，通过表达式树预编译转置引擎将行式集合转置为物理连续的属性列数组，彻底消除全部键名冗余；\par

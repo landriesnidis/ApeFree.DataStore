@@ -313,7 +313,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                         SizeReductionPercent = reduction,
                         WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
                         IsVerified = verified,
-                        Notes = "🏆 行业天花板：Jbin 连续二进制数据块经 GZip 管道自适应压缩，体积极致紧凑"
+                        Notes = "连续二进制数据块经 GZip 流管道压缩，兼顾存储体积与反序列化读取速度"
                     };
                 })
             };
@@ -567,7 +567,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                         SizeReductionPercent = reduction,
                         WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
                         IsVerified = verified,
-                        Notes = "🚀 核心黑科技：通过 Jbin TransposeToDictionary 将海量实体对象按列聚合成物理连续数组，消除全部属性名冗余"
+                        Notes = "通过 Jbin TransposeToDictionary 表达式树转置按列聚合为连续数组，消除键名冗余"
                     };
                 }),
 
@@ -613,7 +613,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                         SizeReductionPercent = reduction,
                         WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
                         IsVerified = verified,
-                        Notes = "👑 压缩比王者：列式连续内存块在 GZip 管道中展现出统治级的高压缩率（超 90% 缩减），兼具高速还原能力"
+                        Notes = "列式连续内存块经 GZip 管道压缩，大幅降低存储体积并保持快速还原能力"
                     };
                 })
             };

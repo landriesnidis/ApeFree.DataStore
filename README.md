@@ -310,16 +310,68 @@ await Task.WhenAll(tasks);
 
 ---
 
-## 🖥️ 演示工程与性能评测 (Samples & Benchmark)
+## 🖥️ 演示工程与基准测试报告 (Benchmark & Reports)
 
-本项目在 `samples/` 目录下提供了现代化的基准评测与交互式演示工程：
+本项目在 `samples/` 目录下提供了完整的基准评测工程与基础示例工程：
 
-- [**`ApeFree.DataStore.BenchmarkDemo`**](samples/ApeFree.DataStore.BenchmarkDemo/)：**专业级性能基准与大数据存储评测系统（WinForms）**
-  - **界面 1：⚡ 高频配置读写对比**：直观对比高频配置修改场景下，`DataStore`（内置 `CoalesceMangedModel` 因果写合并调度器）相较于传统直接文件读写（`File.WriteAllText + JsonConvert`）的性能差异。提供写入耗时（降低 90%+）、物理刷盘次数（削减 98%+）、吞吐率（提升 6~50 倍）及并发锁冲突的详细对比。
-  - **界面 2：🚀 超大数据吞吐与压缩比对比**：
-    - **海量传感器与 3D 点云时序（连续基元值类型大数组）**：全方位横向对比原生 JSON、原生 XML、DataStore (Json + GZip)、DataStore (Jbin 零拷贝) 以及 DataStore (Jbin + GZip 极限压缩)。深度展示 Jbin 原生基元内存映射与二进制流压缩的强悍性能。
-    - **超大业务实体对象集合（对象密集型结构）**：展示 Jbin 的**列式存储（Columnar Storage - `TransposeToDictionary`）**能力，将海量实体对象按列聚合成物理连续数组，彻底消除属性名冗余，配合流压缩管道实现体积暴降 90%~95% 以上并极速还原。
-- [**`ApeFree.DataStore.Demo`**](samples/ApeFree.DataStore.Demo/)：基础 WinForms 数据实体增删改查与持久化示例。
+- [**`ApeFree.DataStore.BenchmarkDemo`**](samples/ApeFree.DataStore.BenchmarkDemo/)：**基准性能与大数据存储对比评测系统**
+  - **工程路径**：[`samples/ApeFree.DataStore.BenchmarkDemo`](samples/ApeFree.DataStore.BenchmarkDemo/)
+  - **运行方式**：支持通过 WinForms 图形化交互界面运行，或通过命令行静默运行：`dotnet run --project samples/ApeFree.DataStore.BenchmarkDemo -f net10.0-windows -- -r`。
+- [**`ApeFree.DataStore.Demo`**](samples/ApeFree.DataStore.Demo/)：基础 WinForms 数据实体增删改查与持久化示例（路径：[`samples/ApeFree.DataStore.Demo`](samples/ApeFree.DataStore.Demo/)）。
+
+---
+
+### 📊 基准测试报告 1：高频配置读写性能对比
+
+#### 1. 测试环境与测试方案
+- **硬件与运行环境**：Windows x64 / .NET 10.0 Runtime / 本地 NVMe SSD
+- **测试数据模型**：[`AppConfig`](samples/ApeFree.DataStore.BenchmarkDemo/Models/ConfigModels.cs)（包含窗体布局、用户设置、近期文件列表与动态字典，单次序列化文本约 2.5 KB）
+- **测试负载**：1,000 次连续保存操作，4 线程并发执行，0 ms 模拟间隔（极限压测）
+- **对比方案**：
+  1. **传统直接读写方案 (`File.WriteAllText + JsonConvert`)**：每次修改配置均全量执行 `JsonConvert.SerializeObject` 并调用操作系统文件 API `File.WriteAllText` 写入磁盘，业务并发采用进程内锁同步；读取配置通过 `File.ReadAllText` 后反序列化。
+  2. **`ApeFree.DataStore` 方案**：创建 `LocalStore<AppConfig>` 并配置同构的 `JsonSerializationAdapter`；修改配置调用 `store.SaveAsync()` 经由 `CoalesceMangedModel` 调度器执行异步写合并；读取配置直接访问内存实例 `store.Value`。
+
+#### 2. 实测数据对比表
+
+| 评测维度 / 性能指标 | 传统直接读写 (`File.WriteAllText + Json`) | `ApeFree.DataStore` (Coalesce 模式) | 差异对比 |
+| :--- | :--- | :--- | :--- |
+| **调用方写入总耗时** | 285.1 ms | **<font color="#d93025">8.0 ms</font>** | **<font color="#d93025">耗时降低 97.2%</font>** |
+| **写入吞吐量** | 3,507 ops/s | **<font color="#d93025">125,447 ops/s</font>** | **<font color="#d93025">吞吐量提升约 35 倍</font>** |
+| **平均单次保存延迟** | 0.285 ms | **<font color="#d93025">0.008 ms</font>** | **<font color="#d93025">延迟降低 97.2%</font>** |
+| **单次配置读取延迟** | 0.878 ms（每次从磁盘读取并解析） | **<font color="#d93025">< 0.0001 ms</font>**（内存直读） | **<font color="#d93025">延迟降低 > 99.9%</font>** |
+| **物理磁盘实际刷盘次数** | 1,000 次（每次保存均落盘） | **<font color="#d93025">3 次</font>**（因果自动合并） | **<font color="#d93025">物理 I/O 削减 99.7%</font>** |
+| **物理磁盘实际写入数据量** | 809,785 Bytes (~810 KB) | **<font color="#d93025">3,018 Bytes (~3 KB)</font>** | **<font color="#d93025">写入磨损量降低 99.6%</font>** |
+| **并发文件锁冲突/异常数** | 0 次（依赖排队锁） | 0 次（无锁 CAS 调度） | 两种方案均未发生锁冲突 |
+| **最终落盘数据因果一致性** | 校验通过 | 校验通过 | 100% 数据一致 |
+
+---
+
+### 📊 基准测试报告 2：超大数据单次读写速度与容量大小对比
+
+#### 1. 数据集 A：海量传感器与 3D 点云时序数据（值类型大数组）
+- **数据结构**：[`PointCloudDataset`](samples/ApeFree.DataStore.BenchmarkDemo/Models/BigDataModels.cs)，包含 50,000 个采样点（`float[] PositionsX, Y, Z` 各 50,000 项，`double[] Timestamps` 50,000 项，`int[] Intensities` 50,000 项，`byte[] ReturnFlags` 50,000 项，原生内存二进制总大小约 1.25 MB）。
+- **实测数据对比表**：
+
+| 存储与序列化方案 | 写入耗时 (Write) | 读取耗时 (Read) | 往返总耗时 (Total) | 磁盘文件体积 (Size) | 相对标准 JSON 压缩比 | 写入吞吐率 | 数据一致性校验 | 方案机制说明 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **原生 Newtonsoft.Json (纯文本)** | 180.4 ms | 190.2 ms | 370.5 ms | 2.47 MB (2,585,347 B) | 基准 (0.0%) | 13.7 MB/s | 通过 | 浮点数与数值被格式化为十进制文本字符串 |
+| **原生 XmlSerializer (标准 XML)** | 168.2 ms | 220.2 ms | 388.4 ms | 7.14 MB (7,485,573 B) | -189.5% (膨胀) | 42.4 MB/s | 通过 | 包含完整 XML 元素标签与命名空间定义 |
+| **DataStore (Json + GZip 流压缩)** | 316.3 ms | 203.6 ms | 520.0 ms | **<font color="#d93025">1013.68 KB (1,038,010 B)</font>** | **<font color="#d93025">59.9%</font>** | 3.1 MB/s | 通过 | 文本经 GZip 管道即时流式压缩 |
+| **DataStore (Jbin 混合二进制零拷贝)** | **<font color="#d93025">29.5 ms</font>** | **<font color="#d93025">30.5 ms</font>** | **<font color="#d93025">60.0 ms</font>** | **<font color="#d93025">1.19 MB (1,250,950 B)</font>** | **<font color="#d93025">51.6%</font>** | **<font color="#d93025">40.5 MB/s</font>** | 通过 | 基于 `Buffer.BlockCopy` 原生基元内存零拷贝映射，往返耗时降低 83.8% |
+| **DataStore (Jbin + GZip 流压缩)** | **<font color="#d93025">40.7 ms</font>** | **<font color="#d93025">8.0 ms</font>** | **<font color="#d93025">48.7 ms</font>** | **<font color="#d93025">782.67 KB (801,459 B)</font>** | **<font color="#d93025">69.0%</font>** | 18.8 MB/s | 通过 | 连续规整二进制块经流压缩管道输出，兼顾体积与读取性能 |
+
+#### 2. 数据集 B：超大业务实体对象集合与列式存储（结构化对象密集型集合）
+- **数据结构**：[`DeviceLogBatch`](samples/ApeFree.DataStore.BenchmarkDemo/Models/BigDataModels.cs)，包含 10,000 条结构化对象记录（`long Id`、`DateTime Timestamp`、`string DeviceId`、`string LogLevel`、`int StatusCode`、`double MetricValue`、`string Message`、`string TraceId`）。
+- **实测数据对比表**：
+
+| 存储与序列化方案 | 写入耗时 (Write) | 读取耗时 (Read) | 往返总耗时 (Total) | 磁盘文件体积 (Size) | 相对标准 JSON 压缩比 | 写入吞吐率 | 数据一致性校验 | 方案机制说明 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **原生 Newtonsoft.Json (行式对象集合)** | 88.9 ms | 155.5 ms | 244.4 ms | 2.35 MB (2,459,233 B) | 基准 (0.0%) | 26.4 MB/s | 通过 | 传统行式结构，每个对象均重复输出属性名字符串 |
+| **原生 XmlSerializer (行式 XML 集合)** | 93.1 ms | 135.0 ms | 228.0 ms | 3.96 MB (4,149,434 B) | -68.7% (膨胀) | 42.5 MB/s | 通过 | XML 标签结构开销较大 |
+| **DataStore (Json + GZip 流压缩)** | 108.4 ms | 140.2 ms | 248.6 ms | **<font color="#d93025">164.11 KB (168,049 B)</font>** | **<font color="#d93025">93.2%</font>** | 1.5 MB/s | 通过 | 行式文本经 GZip 管道即时流式压缩 |
+| **DataStore (Jbin 原生行式存储)** | 179.9 ms | 1022.8 ms | 1202.7 ms | 3.57 MB (3,739,555 B) | -52.1% (膨胀) | 19.8 MB/s | 通过 | 动态反射构建对象拓扑 |
+| **DataStore (Jbin 列式存储 Transposition)** | 1028.4 ms | **<font color="#d93025">89.9 ms</font>** | 1118.4 ms | **<font color="#d93025">871.55 KB (892,471 B)</font>** | **<font color="#d93025">63.7%</font>** | 0.8 MB/s | 通过 | 通过 `TransposeToDictionary` 表达式树预编译转置引擎按列聚合为连续数组，消除属性名冗余，读取耗时缩短 42.2% |
+| **DataStore (Jbin 列式存储 + GZip 流压缩)** | 725.8 ms | **<font color="#d93025">57.6 ms</font>** | 783.4 ms | **<font color="#d93025">125.07 KB (128,072 B)</font>** | **<font color="#d93025">94.8%</font>** | 0.2 MB/s | 通过 | 列式连续内存块在 GZip 压缩管道中体积缩减至 125 KB，读取耗时较原生 JSON 缩短 62.9% |
 
 ---
 

@@ -69,7 +69,7 @@ namespace ApeFree.DataStore.BenchmarkDemo
             }
 
             Console.WriteLine("\r\n================================================================================");
-            Console.WriteLine("REPORT 3: Jbin 闭源专有技术极致性能评测（理想数据形态 vs GZip 累赘实证）(50,000 记录, IndustrialTelemetryDataset)");
+            Console.WriteLine("REPORT 3: 多通道时序数据高效持久化评测 (50,000 记录, IndustrialTelemetryDataset)");
             Console.WriteLine("================================================================================");
             var telemetryResults = bd.RunJbinExclusiveTelemetryBenchmark(50000, null, null);
             foreach (var r in telemetryResults)
@@ -82,7 +82,7 @@ namespace ApeFree.DataStore.BenchmarkDemo
         private static async Task RunJbinExclusiveReportAsync()
         {
             Console.WriteLine("================================================================================");
-            Console.WriteLine("🌟 Jbin 闭源专有技术极致性能评测（理想数据形态 vs GZip 累赘实证）(50,000 记录)");
+            Console.WriteLine("⚡ 多通道时序数据高效持久化评测 (50,000 记录)");
             Console.WriteLine("================================================================================");
             var bd = new BigDataBenchmarkService();
             var results = bd.RunJbinExclusiveTelemetryBenchmark(50000, Console.WriteLine, null);
@@ -112,7 +112,7 @@ namespace ApeFree.DataStore.BenchmarkDemo
             var objResults = bdService.RunObjectBatchBenchmark(2000, Console.WriteLine, null);
             Console.WriteLine($"Object Batch Tests Completed. Result count: {objResults.Count}");
 
-            Console.WriteLine("\r\n=== [Smoke Test 4: Jbin 理想数据形态与累赘验证评测 (5,000 记录)] ===");
+            Console.WriteLine("\r\n=== [Smoke Test 4: 多通道时序数据与流压缩开销评测 (5,000 记录)] ===");
             var telemetryResults = bdService.RunJbinExclusiveTelemetryBenchmark(5000, Console.WriteLine, null);
             Console.WriteLine($"Telemetry Tests Completed. Result count: {telemetryResults.Count}");
             bdService.CleanUp();

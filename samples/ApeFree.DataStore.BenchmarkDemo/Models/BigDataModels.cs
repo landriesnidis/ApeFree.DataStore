@@ -171,13 +171,13 @@ namespace ApeFree.DataStore.BenchmarkDemo.Models
     }
 
     /// <summary>
-    /// 工业物联网与智能装备遥测多通道时序数据集（Jbin 理想数据形态模型）
-    /// 专为 Jbin 闭源原生压缩特性量身定制：
-    /// - 毫秒级单调递增时间戳 (long[] -> Simple-8b 算法)
-    /// - 采集通道编号与工况状态字 (int[] -> Frame of Reference 算法)
-    /// - 多通道连续平滑物理量 (float[] Temperatures, Pressures, Vibrations -> Gorilla 算法)
-    /// - 高精度工作电压 (double[] Voltages -> Gorilla 算法)
-    /// - 离散状态与告警字符串 (string[] StatusDescriptions -> Dictionary 字典编码)
+    /// 工业物联网与智能装备遥测多通道时序数据集（面向列式与数值数组的结构化数据模型）
+    /// 包含：
+    /// - 毫秒级单调递增时间戳 (long[])
+    /// - 采集通道编号与工况状态字 (int[])
+    /// - 多通道连续平滑物理量 (float[] Temperatures, Pressures, Vibrations)
+    /// - 高精度工作电压 (double[] Voltages)
+    /// - 离散状态与告警字符串 (string[] StatusDescriptions)
     /// </summary>
     [Serializable]
     [XmlRoot("IndustrialTelemetryDataset")]
@@ -228,7 +228,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Models
                 ds.ChannelIds[i] = i % 8;                    // 8 通道循环
                 ds.StatusCodes[i] = 200 + (i % 5);           // 状态码 200-204
 
-                // 连续浮点时序（模拟真实物理过程的微小漂移，体现 Gorilla 算法最大威力）
+                // 连续浮点时序（模拟真实物理过程的微小漂移）
                 temp += (float)(rand.NextDouble() * 0.2 - 0.1);
                 press += (float)(rand.NextDouble() * 0.4 - 0.2);
                 volt += (rand.NextDouble() * 0.1 - 0.05);

@@ -52,8 +52,8 @@ namespace ApeFree.DataStore.BenchmarkDemo.Views
                 Height = 52,
                 Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular),
                 ForeColor = Color.FromArgb(80, 90, 105),
-                Text = "【Jbin 闭源专有技术优势】：针对连续数值数组与枚举字符串内置专有领域算法（Gorilla 浮点时序差分 / FoR 整数基准帧 / Simple-8b 紧凑位打包 / Dictionary 字典编码）。\r\n" +
-                       "【核心验证课题】：在合适的数据结构下，单用 Jbin 专有压缩即可实现毫秒级往返与极限压缩比。叠加通用 GZip 流过滤器仅能带来边际微小的体积缩减（< 10%），却会导致耗时激增数倍（+150% ~ 300%），证明此时 GZip 纯属多余累赘！"
+                Text = "【时序持久化机制】：DataStore 默认采用 Jbin 格式，支持对连续数值数组与集合进行直接内存映射与紧凑编码。\r\n" +
+                       "【核心评测对比】：在结构化数值时序场景下，DataStore 直接持久化即可达到极高读写吞吐与小体积。若在此场景下额外叠加通用 GZip 流过滤器，由于边际压缩收益极低却增加编解码延迟，反而会造成不必要的耗时开销。"
             };
 
             var flpConfig = new FlowLayoutPanel
@@ -77,7 +77,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Views
 
             btnRun = new Button
             {
-                Text = "🌟 开始 Jbin 专有压缩与累赘验证评测",
+                Text = "⚡ 开始时序持久化与流压缩开销评测",
                 Width = 265,
                 Height = 30,
                 BackColor = Color.FromArgb(12, 115, 235),
@@ -128,10 +128,10 @@ namespace ApeFree.DataStore.BenchmarkDemo.Views
             tlpCards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
             tlpCards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
 
-            lblCardJbinReduction = CreateMetricCard(tlpCards, 0, "Jbin 专有压缩相对 JSON 减重", "- %", Color.FromArgb(16, 137, 62));
-            lblCardJbinLatency = CreateMetricCard(tlpCards, 1, "Jbin 专有压缩读写往返耗时", "- ms", Color.FromArgb(12, 115, 235));
-            lblCardSpeedupVsGzip = CreateMetricCard(tlpCards, 2, "Jbin 相对 JSON+GZip 提速", "- 倍", Color.FromArgb(138, 43, 226));
-            lblCardGzipRedundancyCost = CreateMetricCard(tlpCards, 3, "GZip 累赘代价 (多耗时/微多缩)", "- % / - %", Color.FromArgb(217, 48, 37));
+            lblCardJbinReduction = CreateMetricCard(tlpCards, 0, "DataStore 紧凑模式减重率", "- %", Color.FromArgb(16, 137, 62));
+            lblCardJbinLatency = CreateMetricCard(tlpCards, 1, "DataStore 读写往返总耗时", "- ms", Color.FromArgb(12, 115, 235));
+            lblCardSpeedupVsGzip = CreateMetricCard(tlpCards, 2, "相对 JSON+GZip 提速", "- 倍", Color.FromArgb(138, 43, 226));
+            lblCardGzipRedundancyCost = CreateMetricCard(tlpCards, 3, "叠加 GZip 额外开销代价", "- % / - %", Color.FromArgb(217, 48, 37));
 
             panelCards.Controls.Add(tlpCards);
 
@@ -205,7 +205,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Views
             dgvResults.Columns.Add("Reduction", "相对 JSON 压缩比");
             dgvResults.Columns.Add("Throughput", "写入吞吐率");
             dgvResults.Columns.Add("Verified", "数据一致性");
-            dgvResults.Columns.Add("Notes", "方案机制与累赘损耗实证");
+            dgvResults.Columns.Add("Notes", "方案机制与开销实证");
 
             dgvResults.Columns["Strategy"].FillWeight = 26;
             dgvResults.Columns["WriteMs"].FillWeight = 9;
@@ -299,7 +299,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Views
             else if (cboScale.SelectedIndex == 1) count = 50000;
             else if (cboScale.SelectedIndex == 2) count = 100000;
 
-            AppendLog($"[Jbin 专有压缩与零累赘评测] 启动... 遥测数据规模={count:N0} 条记录\r\n", Color.Cyan);
+            AppendLog($"[时序持久化评测] 启动... 遥测数据规模={count:N0} 条记录\r\n", Color.Cyan);
 
             try
             {
@@ -337,7 +337,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Views
                     );
 
                     var row = dgvResults.Rows[rowIndex];
-                    if (r.StrategyName.Contains("Jbin 闭源专有压缩: 算法级全开"))
+                    if (r.StrategyName.Contains("Jbin 紧凑模式"))
                     {
                         row.DefaultCellStyle.BackColor = Color.FromArgb(235, 245, 255);
                         row.DefaultCellStyle.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
@@ -347,7 +347,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Views
                     {
                         jsonGzipResult = r;
                     }
-                    else if (r.StrategyName.Contains("Jbin 闭源专有压缩 + GZip 累赘对比"))
+                    else if (r.StrategyName.Contains("Jbin 紧凑模式 + GZip 流压缩"))
                     {
                         jbinGzipResult = r;
                         row.DefaultCellStyle.ForeColor = Color.FromArgb(160, 40, 40);
@@ -376,16 +376,16 @@ namespace ApeFree.DataStore.BenchmarkDemo.Views
 
                 lblStatus.Text = $"评测完成！共执行 {results.Count} 项方案对比。数据均已完成双向对称性校验。";
                 AppendLog("\r\n================ 评测量化结论 ================\r\n", Color.Gold);
-                AppendLog($"1. Jbin 专有压缩（Gorilla+FoR+Simple8b+Dict）使数据体积缩减 {jbinExclusiveResult?.SizeReductionPercent:F1}%\r\n", Color.LightGreen);
+                AppendLog($"1. DataStore (Jbin 紧凑模式) 使数据体积缩减 {jbinExclusiveResult?.SizeReductionPercent:F1}%\r\n", Color.LightGreen);
                 if (jsonGzipResult != null && jbinExclusiveResult != null)
                 {
-                    AppendLog($"2. 相对传统 Json+GZip，Jbin 专有压缩往返耗时缩短 {(1.0 - jbinExclusiveResult.TotalElapsedMs / jsonGzipResult.TotalElapsedMs) * 100.0:F1}%（提速 {(jsonGzipResult.TotalElapsedMs / jbinExclusiveResult.TotalElapsedMs):F1} 倍）\r\n", Color.LightGreen);
+                    AppendLog($"2. 相对传统 Json+GZip，DataStore (Jbin 紧凑模式) 往返耗时缩短 {(1.0 - jbinExclusiveResult.TotalElapsedMs / jsonGzipResult.TotalElapsedMs) * 100.0:F1}%（提速 {(jsonGzipResult.TotalElapsedMs / jbinExclusiveResult.TotalElapsedMs):F1} 倍）\r\n", Color.LightGreen);
                 }
                 if (jbinGzipResult != null && jbinExclusiveResult != null)
                 {
                     double timeCost = ((jbinGzipResult.TotalElapsedMs - jbinExclusiveResult.TotalElapsedMs) / jbinExclusiveResult.TotalElapsedMs) * 100.0;
                     double sizeBenefit = ((double)(jbinExclusiveResult.FileSizeBytes - jbinGzipResult.FileSizeBytes) / jbinExclusiveResult.FileSizeBytes) * 100.0;
-                    AppendLog($"3. 【GZip 累赘实证】：在已启用 Jbin 专有压缩时，叠加 GZip 导致耗时激增 +{timeCost:F1}%，而体积仅额外再微降 {sizeBenefit:F1}%，性价比严重倒挂，实证 GZip 在理想 Jbin 数据结构下纯属多余累赘！\r\n", Color.OrangeRed);
+                    AppendLog($"3. 【开销对比实证】：在已启用紧凑模式时，叠加 GZip 导致耗时增加 +{timeCost:F1}%，而体积仅额外微缩 {sizeBenefit:F1}%。在合适的数据结构下，无需额外开启通用流压缩！\r\n", Color.OrangeRed);
                 }
             }
             catch (Exception ex)

@@ -274,8 +274,8 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                     };
                 }),
 
-                // 5. ApeFree.DataStore + Jbin (针对不同值类型的专用算法压缩：float/double 采用 Gorilla，int 采用 FoR)
-                new BenchmarkStep("ApeFree.DataStore (Jbin 算法压缩: Gorilla 浮点 + FoR 整数)", () =>
+                // 5. ApeFree.DataStore + Jbin (紧凑数值编码)
+                new BenchmarkStep("ApeFree.DataStore (Jbin 紧凑模式)", () =>
                 {
                     string path = Path.Combine(tempDir, "pointcloud_datastore_jbin_alg.jbin");
                     var settings = new LocalStoreAccessSettings(path)
@@ -308,7 +308,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
 
                     return new BigDataBenchmarkResult
                     {
-                        StrategyName = "ApeFree.DataStore (Jbin 算法压缩: Gorilla 浮点 + FoR 整数)",
+                        StrategyName = "ApeFree.DataStore (Jbin 紧凑模式)",
                         DatasetType = "海量点云基元数组",
                         ElementCount = pointCount,
                         WriteElapsedMs = writeMs,
@@ -317,7 +317,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                         SizeReductionPercent = reduction,
                         WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
                         IsVerified = verified,
-                        Notes = "纯算法压缩（无流过滤器）：针对不同值类型分别应用 Gorilla 浮点 XOR 差分与 FoR 整数帧差分算法"
+                        Notes = "内置紧凑数值编码（无外层流过滤器）：针对连续数值数组执行紧凑编码，自描述还原"
                     };
                 }),
 
@@ -409,8 +409,8 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                     };
                 }),
 
-                // 8. ApeFree.DataStore + Jbin 算法压缩 + GZip 复合管道
-                new BenchmarkStep("ApeFree.DataStore (Jbin 算法压缩 + GZip 复合管道)", () =>
+                // 8. ApeFree.DataStore + Jbin 紧凑模式 + GZip 复合管道
+                new BenchmarkStep("ApeFree.DataStore (Jbin 紧凑模式 + GZip 复合管道)", () =>
                 {
                     string path = Path.Combine(tempDir, "pointcloud_datastore_jbin_alg_gzip.dat");
                     var settings = new LocalStoreAccessSettings(path)
@@ -443,7 +443,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
 
                     return new BigDataBenchmarkResult
                     {
-                        StrategyName = "ApeFree.DataStore (Jbin 算法压缩 + GZip 复合管道)",
+                        StrategyName = "ApeFree.DataStore (Jbin 紧凑模式 + GZip 复合管道)",
                         DatasetType = "海量点云基元数组",
                         ElementCount = pointCount,
                         WriteElapsedMs = writeMs,
@@ -452,7 +452,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                         SizeReductionPercent = reduction,
                         WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
                         IsVerified = verified,
-                        Notes = "双重压缩：类型层执行基元专用压缩 (Gorilla + FoR)，物理流层执行 GZip 管道二次压缩"
+                        Notes = "双重压缩：内置紧凑编码配合外层通用 GZip 管道二次压缩"
                     };
                 })
             };
@@ -710,8 +710,8 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                     };
                 }),
 
-                // 6. ApeFree.DataStore + Jbin 列式存储 + 专用基元算法压缩 (long 采用 Simple-8b, int 采用 FoR, double 采用 Gorilla)
-                new BenchmarkStep("ApeFree.DataStore (Jbin 列式存储 + 算法压缩: Simple8b/FoR/Gorilla)", () =>
+                // 6. ApeFree.DataStore + Jbin 列式存储 + 紧凑数值编码
+                new BenchmarkStep("ApeFree.DataStore (Jbin 列式紧凑编码)", () =>
                 {
                     string path = Path.Combine(tempDir, "objects_datastore_jbin_columnar_alg.jbin");
                     var settings = new LocalStoreAccessSettings(path)
@@ -746,7 +746,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
 
                     return new BigDataBenchmarkResult
                     {
-                        StrategyName = "ApeFree.DataStore (Jbin 列式存储 + 算法压缩: Simple8b/FoR/Gorilla)",
+                        StrategyName = "ApeFree.DataStore (Jbin 列式紧凑编码)",
                         DatasetType = "超大对象集合",
                         ElementCount = recordCount,
                         WriteElapsedMs = writeMs,
@@ -755,7 +755,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                         SizeReductionPercent = reduction,
                         WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
                         IsVerified = verified,
-                        Notes = "列式属性数组应用专用位压缩：Id列用Simple8b，状态码用FoR，指标数值用Gorilla"
+                        Notes = "列式属性数组应用紧凑编码，消除冗余并提升读取效率"
                     };
                 }),
 
@@ -866,10 +866,10 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
 
         #endregion
 
-        #region 3. Jbin 独有专有优势与零累赘实战评测 (工业物联网多通道遥测时序数据集)
+        #region 3. 多通道时序数据高效持久化评测 (工业物联网多通道遥测时序数据集)
 
         /// <summary>
-        /// 运行 Jbin 独有专有压缩优势评测（理想数据形态 vs GZip 累赘实证）
+        /// 运行时序数据存储与流压缩开销对比评测
         /// 数据结构：IndustrialTelemetryDataset (包含递增 long[]、分组 int[]、连续平滑 float[]/double[]、枚举 string[])
         /// </summary>
         public List<BigDataBenchmarkResult> RunJbinExclusiveTelemetryBenchmark(
@@ -1077,8 +1077,8 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                     };
                 }),
 
-                // 5. DataStore (Jbin 独有专有压缩: Gorilla/FoR/Simple8b/Dict) ⭐
-                new BenchmarkStep("ApeFree.DataStore (Jbin 闭源专有压缩: 算法级全开)", () =>
+                // 5. DataStore (Jbin 紧凑模式) ⭐
+                new BenchmarkStep("ApeFree.DataStore (Jbin 紧凑模式)", () =>
                 {
                     string path = Path.Combine(tempDir, "telemetry_jbin_exclusive.dat");
                     var settings = new LocalStoreAccessSettings(path)
@@ -1115,7 +1115,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
 
                     return new BigDataBenchmarkResult
                     {
-                        StrategyName = "ApeFree.DataStore (Jbin 闭源专有压缩: 算法级全开)",
+                        StrategyName = "ApeFree.DataStore (Jbin 紧凑模式)",
                         DatasetType = "工业遥测时序",
                         ElementCount = recordCount,
                         WriteElapsedMs = writeMs,
@@ -1124,12 +1124,12 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                         SizeReductionPercent = reduction,
                         WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
                         IsVerified = verified,
-                        Notes = "⭐ 黄金平衡点：Gorilla浮点 + FoR整型 + Simple-8b时间戳 + 字符串字典编码，无外层流过滤器"
+                        Notes = "⭐ 黄金平衡点：数值与字符串紧凑编码，无需外层流过滤器"
                     };
                 }),
 
-                // 6. DataStore (Jbin 专有压缩 + GZip 复合累赘对比)
-                new BenchmarkStep("ApeFree.DataStore (Jbin 闭源专有压缩 + GZip 累赘对比)", () =>
+                // 6. DataStore (Jbin 紧凑模式 + GZip 复合流压缩)
+                new BenchmarkStep("ApeFree.DataStore (Jbin 紧凑模式 + GZip 流压缩)", () =>
                 {
                     string path = Path.Combine(tempDir, "telemetry_jbin_gzip_redundant.dat");
                     var settings = new LocalStoreAccessSettings(path)
@@ -1169,7 +1169,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
 
                     return new BigDataBenchmarkResult
                     {
-                        StrategyName = "ApeFree.DataStore (Jbin 闭源专有压缩 + GZip 累赘对比)",
+                        StrategyName = "ApeFree.DataStore (Jbin 紧凑模式 + GZip 流压缩)",
                         DatasetType = "工业遥测时序",
                         ElementCount = recordCount,
                         WriteElapsedMs = writeMs,
@@ -1178,7 +1178,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                         SizeReductionPercent = reduction,
                         WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
                         IsVerified = verified,
-                        Notes = $"实证累赘效应：叠加 GZip 额外耗时增加 {extraTimePercent:F1}%，但体积仅微缩 {extraSavedPercent:F1}%，边际收益极低"
+                        Notes = $"开销对比：叠加 GZip 额外耗时增加 {extraTimePercent:F1}%，但体积仅微缩 {extraSavedPercent:F1}%，边际收益较低"
                     };
                 })
             };

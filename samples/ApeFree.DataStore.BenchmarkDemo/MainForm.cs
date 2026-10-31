@@ -49,7 +49,7 @@ namespace ApeFree.DataStore.BenchmarkDemo
 
             var lblSubtitle = new Label
             {
-                Text = "⚡ Coalesce 并发因果写合并调度器  |  🚀 Jbin 混合二进制列式存储与零拷贝  |  📦 插件化流压缩管道 (GZip / Deflate / AES)",
+                Text = "⚡ Coalesce 并发因果写合并调度器  |  🚀 默认二进制存储与零拷贝映射  |  📦 插件化流压缩管道 (GZip / Deflate / AES)",
                 ForeColor = Color.FromArgb(160, 175, 200),
                 Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular),
                 Dock = DockStyle.Fill
@@ -78,16 +78,16 @@ namespace ApeFree.DataStore.BenchmarkDemo
             // Tab 2: 超大数据吞吐与压缩
             tabBigData = new TabPage
             {
-                Text = " 🚀 超大数据通用评测 (Jbin 列式存储与零拷贝) ",
+                Text = " 🚀 超大数据吞吐与压缩评测 ",
                 BackColor = Color.FromArgb(248, 249, 250)
             };
             var bigDataControl = new BigDataTestControl { Dock = DockStyle.Fill };
             tabBigData.Controls.Add(bigDataControl);
 
-            // Tab 3: Jbin 闭源专有压缩极限与零累赘实战
+            // Tab 3: 多通道时序数据高效持久化评测
             tabJbinExclusive = new TabPage
             {
-                Text = " 🌟 Jbin 专有优势与零累赘实战 (理想数据形态 vs GZip 累赘对比) ",
+                Text = " ⚡ 多通道时序数据高效持久化 (内置紧凑编码 vs 流压缩开销) ",
                 BackColor = Color.FromArgb(248, 249, 250)
             };
             var jbinExclusiveControl = new JbinExclusiveBenchmarkControl { Dock = DockStyle.Fill };

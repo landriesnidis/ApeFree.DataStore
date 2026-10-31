@@ -68,6 +68,75 @@ namespace ApeFree.DataStore.Tests
         }
 
         [TestMethod]
+        public void TestLocalStoreXmlSaveAndLoad()
+        {
+            var filePath = Path.Combine(testDir, "settings.xml");
+            var settings = new LocalStoreAccessSettings(filePath)
+            {
+                SerializationAdapter = new XmlSerializationAdapter("ApplicationXmlConfig")
+            };
+
+            // 1. 初始化并物理保存 XML
+            using (var store = new LocalStore<XmlCompatibleSettings>(settings, () => new XmlCompatibleSettings { Title = "XmlDiskConfig", Id = 9999 }))
+            {
+                store.Load();
+                store.Save();
+            }
+
+            Assert.IsTrue(File.Exists(filePath), "XML 文件应当已落盘生成");
+            var rawXml = File.ReadAllText(filePath);
+            StringAssert.Contains(rawXml, "<ApplicationXmlConfig");
+            StringAssert.Contains(rawXml, "<Title>XmlDiskConfig</Title>");
+
+            // 2. 重新从物理 XML 文件加载
+            var loadSettings = new LocalStoreAccessSettings(filePath)
+            {
+                SerializationAdapter = new XmlSerializationAdapter("ApplicationXmlConfig")
+            };
+            using (var store2 = new LocalStore<XmlCompatibleSettings>(loadSettings))
+            {
+                store2.Load();
+                Assert.IsNotNull(store2.Value);
+                Assert.AreEqual("XmlDiskConfig", store2.Value.Title);
+                Assert.AreEqual(9999, store2.Value.Id);
+            }
+        }
+
+        [TestMethod]
+        public void TestLocalStoreXmlWithPipelineCompression()
+        {
+            var filePath = Path.Combine(testDir, "compressed_xml.dat");
+            var settings = new LocalStoreAccessSettings(filePath)
+            {
+                SerializationAdapter = new XmlSerializationAdapter()
+            };
+            settings.StreamFilters.Add(new DeflateStreamFilter());
+
+            using (var store = new LocalStore<XmlCompatibleSettings>(settings, () => new XmlCompatibleSettings { Title = "DeflateCompressedXml", Id = 777 }))
+            {
+                store.Load();
+                store.Save();
+            }
+
+            Assert.IsTrue(File.Exists(filePath));
+
+            // 加载验证
+            var loadSettings = new LocalStoreAccessSettings(filePath)
+            {
+                SerializationAdapter = new XmlSerializationAdapter()
+            };
+            loadSettings.StreamFilters.Add(new DeflateStreamFilter());
+
+            using (var store2 = new LocalStore<XmlCompatibleSettings>(loadSettings))
+            {
+                store2.Load();
+                Assert.IsNotNull(store2.Value);
+                Assert.AreEqual("DeflateCompressedXml", store2.Value.Title);
+                Assert.AreEqual(777, store2.Value.Id);
+            }
+        }
+
+        [TestMethod]
         public void TestLocalStoreWithPipelineCompressionAndEncryption()
         {
             var filePath = Path.Combine(testDir, "secure_config.bin");

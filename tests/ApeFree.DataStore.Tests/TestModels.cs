@@ -16,6 +16,15 @@ namespace ApeFree.DataStore.Tests
         };
     }
 
+    public class XmlCompatibleSettings
+    {
+        public string Title { get; set; } = "XmlSettings";
+        public int Id { get; set; } = 1001;
+        public double Score { get; set; } = 99.5;
+        public bool Active { get; set; } = true;
+        public List<string> Items { get; set; } = new List<string>();
+    }
+
     public class BigDataModel
     {
         public string Title { get; set; }

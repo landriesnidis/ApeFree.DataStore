@@ -1,32 +1,22 @@
-﻿using ApeFree.DataStore.Core;
+using System;
 using System.IO;
 using System.IO.Compression;
+using ApeFree.DataStore.Filters;
 
 namespace ApeFree.DataStore.Adapters
 {
     /// <summary>
-    /// Deflate算法压缩适配器
+    /// Deflate 压缩适配器（兼容包装）
     /// </summary>
+    [Obsolete("建议直接使用 DeflateStreamFilter")]
     public class DeflateCompressionAdapter : BaseCompressionAdapter
     {
-        /// <inheritdoc/>
-        public override Stream Compress(Stream stream)
-        {
-            MemoryStream compressStream = new MemoryStream();
-            using (var zipStream = new DeflateStream(compressStream, CompressionMode.Compress, true))
-            {
-                stream.CopyTo(zipStream);
-            }
-            return compressStream;
-        }
+        private readonly DeflateStreamFilter filter = new DeflateStreamFilter();
 
-        /// <inheritdoc/>
-        public override Stream Decompress(Stream stream)
-        {
-            return new DeflateStream(stream, CompressionMode.Decompress);
-        }
+        public override Stream Compress(Stream stream) => filter.WrapWriteStream(stream);
+        public override Stream Decompress(Stream stream) => filter.WrapReadStream(stream);
 
-        /// <inheritdoc/>
-        public override void Dispose() { }
+        public override Stream WrapWriteStream(Stream outputStream) => filter.WrapWriteStream(outputStream);
+        public override Stream WrapReadStream(Stream inputStream) => filter.WrapReadStream(inputStream);
     }
 }

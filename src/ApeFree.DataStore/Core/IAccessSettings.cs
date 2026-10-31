@@ -1,24 +1,21 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace ApeFree.DataStore.Core
 {
+    /// <summary>
+    /// 数据存取配置接口
+    /// </summary>
     public interface IAccessSettings : IDisposable
     {
         /// <summary>
         /// 序列化适配器
         /// </summary>
-        ISerializationAdapter SerializationAdapter { get; }
+        ISerializationAdapter SerializationAdapter { get; set; }
 
         /// <summary>
-        /// 压缩适配器
+        /// 流式过滤器管道列表（按列表顺序依次包装）
         /// </summary>
-        ICompressionAdapter CompressionAdapter { get; }
-
-        /// <summary>
-        /// 加密适配器
-        /// </summary>
-        IEncryptionAdapter EncryptionAdapter { get; }
+        IList<IStreamFilter> StreamFilters { get; }
     }
 }

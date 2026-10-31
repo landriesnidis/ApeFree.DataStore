@@ -1,30 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System;
 using System.Threading.Tasks;
 
 namespace ApeFree.DataStore.Core
 {
+    /// <summary>
+    /// Store 便捷扩展方法
+    /// </summary>
     public static class StoreExtension
     {
         /// <summary>
-        /// 异步加载数据
+        /// 重新加载数据
         /// </summary>
-        /// <param name="store"></param>
-        /// <returns></returns>
-        public static Task LoadAsync(this IStore store)
+        public static void Reload(this IStore store)
         {
-            return Task.Run(() => store.Load());
+            store.Load();
         }
 
         /// <summary>
-        /// 异步保存数据
+        /// 异步重新加载数据
         /// </summary>
-        /// <param name="store"></param>
-        /// <returns></returns>
-        public static Task SaveAsync(this IStore store)
+        public static Task ReloadAsync(this IStore store)
         {
-            return Task.Run(() => store.Save());
+            return store.LoadAsync();
         }
     }
 }

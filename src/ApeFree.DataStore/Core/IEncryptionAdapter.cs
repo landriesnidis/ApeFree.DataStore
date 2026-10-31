@@ -1,26 +1,15 @@
-﻿using System;
+using System;
 using System.IO;
 
 namespace ApeFree.DataStore.Core
 {
     /// <summary>
-    /// 加密适配器
+    /// 加密适配器接口（兼容老版本）
     /// </summary>
-    public interface IEncryptionAdapter : IDisposable
+    [Obsolete("建议使用 Filters 命名空间下的 IStreamFilter，如 AesEncryptionStreamFilter")]
+    public interface IEncryptionAdapter : IStreamFilter
     {
-        /// <summary>
-        /// 加密
-        /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
         Stream Encode(Stream stream);
-
-        /// <summary>
-        /// 解密
-        /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
         Stream Decode(Stream stream);
-
     }
 }

@@ -1,50 +1,72 @@
-﻿using ApeFree.DataStore.Adapters;
 using System;
-using System.IO;
+using System.Collections.Generic;
+using ApeFree.DataStore.Adapters;
 
 namespace ApeFree.DataStore.Core
 {
+    /// <summary>
+    /// 数据存取配置抽象基类
+    /// </summary>
     public abstract class AccessSettings : IAccessSettings
     {
-        /// <inheritdoc/>
-        public ISerializationAdapter SerializationAdapter { get; set; }
-            = DefaultSerializationAdapter.Default.Value;
+        private ISerializationAdapter serializationAdapter;
+        private ICompressionAdapter compressionAdapter;
+        private IEncryptionAdapter encryptionAdapter;
 
         /// <inheritdoc/>
-        public ICompressionAdapter CompressionAdapter { get; set; }
-            = DefaultCompressionAdapter.Default.Value;
-
-        /// <inheritdoc/>
-        public IEncryptionAdapter EncryptionAdapter { get; set; }
-            = DefaultEncryptionAdapter.Default.Value;
-
-        /// <inheritdoc/>
-        public void Dispose()
+        public ISerializationAdapter SerializationAdapter
         {
-            SerializationAdapter.Dispose();
-            CompressionAdapter.Dispose();
-            EncryptionAdapter.Dispose();
+            get => serializationAdapter ?? (serializationAdapter = new JbinSerializationAdapter());
+            set => serializationAdapter = value;
         }
 
-        internal class DefaultSerializationAdapter : JbinSerializationAdapter
+        /// <inheritdoc/>
+        public IList<IStreamFilter> StreamFilters { get; } = new List<IStreamFilter>();
+
+        /// <summary>
+        /// 兼容属性：获取或设置压缩适配器
+        /// </summary>
+        [Obsolete("建议直接使用 StreamFilters.Add(new GZipStreamFilter())")]
+        public ICompressionAdapter CompressionAdapter
         {
-            internal static Lazy<DefaultSerializationAdapter> Default = new Lazy<DefaultSerializationAdapter>();
+            get => compressionAdapter;
+            set
+            {
+                if (compressionAdapter != null) StreamFilters.Remove(compressionAdapter);
+                compressionAdapter = value;
+                if (compressionAdapter != null && !StreamFilters.Contains(compressionAdapter))
+                {
+                    StreamFilters.Add(compressionAdapter);
+                }
+            }
         }
 
-        internal class DefaultEncryptionAdapter : IEncryptionAdapter
+        /// <summary>
+        /// 兼容属性：获取或设置加密适配器
+        /// </summary>
+        [Obsolete("建议直接使用 StreamFilters.Add(new AesEncryptionStreamFilter(...))")]
+        public IEncryptionAdapter EncryptionAdapter
         {
-            internal static Lazy<DefaultEncryptionAdapter> Default = new Lazy<DefaultEncryptionAdapter>();
-            public Stream Decode(Stream stream) => stream;
-            public Stream Encode(Stream stream) => stream;
-            public void Dispose() { }
+            get => encryptionAdapter;
+            set
+            {
+                if (encryptionAdapter != null) StreamFilters.Remove(encryptionAdapter);
+                encryptionAdapter = value;
+                if (encryptionAdapter != null && !StreamFilters.Contains(encryptionAdapter))
+                {
+                    StreamFilters.Add(encryptionAdapter);
+                }
+            }
         }
 
-        internal class DefaultCompressionAdapter : ICompressionAdapter
+        /// <inheritdoc/>
+        public virtual void Dispose()
         {
-            internal static Lazy<DefaultCompressionAdapter> Default = new Lazy<DefaultCompressionAdapter>();
-            public Stream Compress(Stream stream) => stream;
-            public Stream Decompress(Stream stream) => stream;
-            public void Dispose() { }
+            serializationAdapter?.Dispose();
+            foreach (var filter in StreamFilters)
+            {
+                filter?.Dispose();
+            }
         }
     }
 }

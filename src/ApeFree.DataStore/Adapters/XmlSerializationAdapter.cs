@@ -1,15 +1,13 @@
-﻿using ApeFree.DataStore.Core;
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
-using System.Text;
-using System.Xml;
 using System.Xml.Serialization;
+using ApeFree.DataStore.Core;
 
 namespace ApeFree.DataStore.Adapters
 {
     /// <summary>
-    /// Xml序列化器
+    /// XML 格式流式序列化适配器
     /// </summary>
     public class XmlSerializationAdapter : BaseSerializationAdapter
     {
@@ -18,39 +16,39 @@ namespace ApeFree.DataStore.Adapters
         /// </summary>
         public string RootName { get; }
 
-        private readonly Dictionary<Type, XmlSerializer> dictXmlSerializers;
+        private readonly ConcurrentDictionary<Type, XmlSerializer> serializerCache = new ConcurrentDictionary<Type, XmlSerializer>();
 
         public XmlSerializationAdapter(string rootName = null)
         {
             RootName = rootName;
-            dictXmlSerializers = new Dictionary<Type, XmlSerializer>();
+        }
+
+        private XmlSerializer GetSerializer(Type type)
+        {
+            return serializerCache.GetOrAdd(type, t =>
+                string.IsNullOrEmpty(RootName) ? new XmlSerializer(t) : new XmlSerializer(t, RootName));
         }
 
         /// <inheritdoc/>
-        public override T Deserialize<T>(Stream stream)
+        public override void Serialize(object obj, Stream stream)
         {
-            var type = typeof(T);
-            XmlSerializer serializer = (XmlSerializer)dictXmlSerializers.GetValue(type, new XmlSerializer(type, RootName ?? type.Name));
-            T obj = (T)serializer.Deserialize(stream);
-            return obj;
+            if (obj == null || stream == null) return;
+            var serializer = GetSerializer(obj.GetType());
+            serializer.Serialize(stream, obj);
         }
 
         /// <inheritdoc/>
-        public override Stream Serialize(object obj)
+        public override object Deserialize(Stream stream, Type type)
         {
-            var type = obj.GetType();
-            using (MemoryStream stream = new MemoryStream())
-            {
-                XmlSerializer serializer = (XmlSerializer)dictXmlSerializers.GetValue(type, new XmlSerializer(type, RootName ?? type.Name));
-                serializer.Serialize(stream, obj);
-                return new MemoryStream(stream.ToArray());
-            }
+            if (stream == null || type == null) return null;
+            var serializer = GetSerializer(type);
+            return serializer.Deserialize(stream);
         }
 
         /// <inheritdoc/>
         public override void Dispose()
         {
-            dictXmlSerializers.Clear();
+            serializerCache.Clear();
         }
     }
 }

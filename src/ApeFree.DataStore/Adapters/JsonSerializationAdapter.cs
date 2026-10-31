@@ -1,35 +1,33 @@
-﻿using ApeFree.DataStore.Core;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using ApeFree.DataStore.Core;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace ApeFree.DataStore.Adapters
 {
     /// <summary>
-    /// Json序列化器
+    /// JSON 格式流式序列化适配器
+    /// 直接对接底层流，避免内存中生成巨大临时字符串
     /// </summary>
     public class JsonSerializationAdapter : BaseSerializationAdapter
     {
-        /// <summary>
-        /// 默认的Json序列化配置
-        /// 私有静态，此对象用作全局的默认配置，不允许被外部获取，以免被修改
-        /// </summary>
-        protected readonly static Lazy<JsonSerializerSettings> serializerSettings = new Lazy<JsonSerializerSettings>(() =>
+        private static readonly Lazy<JsonSerializerSettings> defaultSettings = new Lazy<JsonSerializerSettings>(() =>
         {
-            return new JsonSerializerSettings().With(s =>
+            var settings = new JsonSerializerSettings
             {
-                s.NullValueHandling = NullValueHandling.Ignore;
-                s.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-                s.Converters.Add(new StringEnumConverter());
-                s.TypeNameHandling = TypeNameHandling.All;
-            });
+                NullValueHandling = NullValueHandling.Ignore,
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                TypeNameHandling = TypeNameHandling.Auto,
+                Formatting = Formatting.Indented
+            };
+            settings.Converters.Add(new StringEnumConverter());
+            return settings;
         });
 
         /// <summary>
-        /// Json序列化配置
+        /// JSON 序列化配置
         /// </summary>
         public JsonSerializerSettings SerializerSettings { get; }
 
@@ -38,33 +36,38 @@ namespace ApeFree.DataStore.Adapters
         /// </summary>
         public Encoding Encoding { get; set; } = Encoding.UTF8;
 
-        /// <summary>
-        /// 构造Json格式的序列化适配器
-        /// </summary>
-        /// <param name="serializerSettings"></param>
         public JsonSerializationAdapter(JsonSerializerSettings serializerSettings = null)
         {
-            SerializerSettings = serializerSettings;
+            SerializerSettings = serializerSettings ?? defaultSettings.Value;
         }
 
         /// <inheritdoc/>
-        public override T Deserialize<T>(Stream stream)
+        public override void Serialize(object obj, Stream stream)
         {
-            StreamReader reader = new StreamReader(stream, Encoding);
-            var json = reader.ReadToEnd();
-            return JsonConvert.DeserializeObject<T>(json, SerializerSettings ?? serializerSettings.Value);
+            if (obj == null || stream == null) return;
+
+            using (var writer = new StreamWriter(stream, Encoding, 4096, leaveOpen: true))
+            using (var jsonWriter = new JsonTextWriter(writer))
+            {
+                jsonWriter.Formatting = SerializerSettings.Formatting;
+                var serializer = JsonSerializer.CreateDefault(SerializerSettings);
+                serializer.Serialize(jsonWriter, obj);
+                jsonWriter.Flush();
+                writer.Flush();
+            }
         }
 
         /// <inheritdoc/>
-        public override Stream Serialize(object obj)
+        public override object Deserialize(Stream stream, Type type)
         {
-            var json = JsonConvert.SerializeObject(obj, Formatting.Indented, SerializerSettings ?? serializerSettings.Value);
-            var bytes = Encoding.GetBytes(json);
-            return new MemoryStream(bytes);
-        }
+            if (stream == null || type == null) return null;
 
-        /// <inheritdoc/>
-        public override void Dispose() { }
+            using (var reader = new StreamReader(stream, Encoding, true, 4096, leaveOpen: true))
+            using (var jsonReader = new JsonTextReader(reader))
+            {
+                var serializer = JsonSerializer.CreateDefault(SerializerSettings);
+                return serializer.Deserialize(jsonReader, type);
+            }
+        }
     }
-
 }

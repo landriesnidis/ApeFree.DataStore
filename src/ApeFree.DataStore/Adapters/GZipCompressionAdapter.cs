@@ -1,35 +1,22 @@
-﻿using ApeFree.DataStore.Core;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Text;
+using ApeFree.DataStore.Filters;
 
 namespace ApeFree.DataStore.Adapters
 {
     /// <summary>
-    /// GZip算法压缩适配器
+    /// GZip 压缩适配器（兼容包装）
     /// </summary>
+    [Obsolete("建议直接使用 GZipStreamFilter")]
     public class GZipCompressionAdapter : BaseCompressionAdapter
     {
-        /// <inheritdoc/>
-        public override Stream Compress(Stream stream)
-        {
-            MemoryStream compressStream = new MemoryStream();
-            using (var zipStream = new GZipStream(compressStream, CompressionMode.Compress, true))
-            {
-                stream.CopyTo(zipStream);
-            }
-            return compressStream;
-        }
+        private readonly GZipStreamFilter filter = new GZipStreamFilter();
 
-        /// <inheritdoc/>
-        public override Stream Decompress(Stream stream)
-        {
-            return new GZipStream(stream, CompressionMode.Decompress);
-        }
+        public override Stream Compress(Stream stream) => filter.WrapWriteStream(stream);
+        public override Stream Decompress(Stream stream) => filter.WrapReadStream(stream);
 
-        /// <inheritdoc/>
-        public override void Dispose() { }
+        public override Stream WrapWriteStream(Stream outputStream) => filter.WrapWriteStream(outputStream);
+        public override Stream WrapReadStream(Stream inputStream) => filter.WrapReadStream(inputStream);
     }
 }

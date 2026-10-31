@@ -1,25 +1,15 @@
-﻿using System;
+using System;
 using System.IO;
 
 namespace ApeFree.DataStore.Core
 {
     /// <summary>
-    /// 压缩适配器
+    /// 压缩适配器接口（兼容老版本）
     /// </summary>
-    public interface ICompressionAdapter: IDisposable
+    [Obsolete("建议使用 Filters 命名空间下的 IStreamFilter，如 GZipStreamFilter")]
+    public interface ICompressionAdapter : IStreamFilter
     {
-        /// <summary>
-        /// 压缩
-        /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
         Stream Compress(Stream stream);
-
-        /// <summary>
-        /// 解压缩
-        /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
         Stream Decompress(Stream stream);
     }
 }

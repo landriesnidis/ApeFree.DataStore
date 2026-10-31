@@ -198,7 +198,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                     var store = StoreFactory.Factory.CreateLocalStore<PointCloudDataset>(settings, () => dataset);
 
                     var sw = Stopwatch.StartNew();
-                    store.Save();
+                    store.Load();
                     sw.Stop();
                     double writeMs = sw.Elapsed.TotalMilliseconds;
                     long size = new FileInfo(path).Length;
@@ -241,7 +241,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                     var store = StoreFactory.Factory.CreateLocalStore<PointCloudDataset>(settings, () => dataset);
 
                     var sw = Stopwatch.StartNew();
-                    store.Save();
+                    store.Load();
                     sw.Stop();
                     double writeMs = sw.Elapsed.TotalMilliseconds;
                     long size = new FileInfo(path).Length;
@@ -286,7 +286,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                     var store = StoreFactory.Factory.CreateLocalStore<PointCloudDataset>(settings, () => dataset);
 
                     var sw = Stopwatch.StartNew();
-                    store.Save();
+                    store.Load();
                     sw.Stop();
                     double writeMs = sw.Elapsed.TotalMilliseconds;
                     long size = new FileInfo(path).Length;
@@ -453,7 +453,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                     var store = StoreFactory.Factory.CreateLocalStore<DeviceLogBatch>(settings, () => batch);
 
                     var sw = Stopwatch.StartNew();
-                    store.Save();
+                    store.Load();
                     sw.Stop();
                     double writeMs = sw.Elapsed.TotalMilliseconds;
                     long size = new FileInfo(path).Length;
@@ -494,7 +494,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                     var store = StoreFactory.Factory.CreateLocalStore<DeviceLogBatch>(settings, () => batch);
 
                     var sw = Stopwatch.StartNew();
-                    store.Save();
+                    store.Load();
                     sw.Stop();
                     double writeMs = sw.Elapsed.TotalMilliseconds;
                     long size = new FileInfo(path).Length;
@@ -537,7 +537,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                     var store = StoreFactory.Factory.CreateLocalStore<ColumnarDeviceLogBatch>(settings, () => columnarBatch);
 
                     var sw = Stopwatch.StartNew();
-                    store.Save();
+                    store.Load();
                     sw.Stop();
                     double writeMs = sw.Elapsed.TotalMilliseconds;
                     long size = new FileInfo(path).Length;
@@ -585,7 +585,7 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
                     var store = StoreFactory.Factory.CreateLocalStore<ColumnarDeviceLogBatch>(settings, () => columnarBatch);
 
                     var sw = Stopwatch.StartNew();
-                    store.Save();
+                    store.Load();
                     sw.Stop();
                     double writeMs = sw.Elapsed.TotalMilliseconds;
                     long size = new FileInfo(path).Length;

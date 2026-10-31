@@ -29,23 +29,10 @@ namespace ApeFree.DataStore.Core
         /// </summary>
         public TSettings AccessSettings { get; }
 
-        private TValue value;
-
         /// <summary>
-        /// 存储的对象实体（支持延迟初始化与动态替换）
+        /// 存储的对象实体
         /// </summary>
-        public TValue Value
-        {
-            get
-            {
-                if (value == null && ValueFactory != null)
-                {
-                    value = ValueFactory.Invoke();
-                }
-                return value;
-            }
-            set => this.value = value;
-        }
+        public TValue Value { get; protected set; }
 
         protected Store(TSettings accessSettings, Func<TValue> valueFactory = null)
         {

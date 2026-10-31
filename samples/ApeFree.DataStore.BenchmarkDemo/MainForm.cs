@@ -10,6 +10,7 @@ namespace ApeFree.DataStore.BenchmarkDemo
         private TabControl tabControl;
         private TabPage tabHighFreq;
         private TabPage tabBigData;
+        private TabPage tabJbinExclusive;
         private TabPage tabArchInfo;
 
         public MainForm()
@@ -77,13 +78,22 @@ namespace ApeFree.DataStore.BenchmarkDemo
             // Tab 2: 超大数据吞吐与压缩
             tabBigData = new TabPage
             {
-                Text = " 🚀 超大数据吞吐与压缩 (Jbin 列式存储与零拷贝) ",
+                Text = " 🚀 超大数据通用评测 (Jbin 列式存储与零拷贝) ",
                 BackColor = Color.FromArgb(248, 249, 250)
             };
             var bigDataControl = new BigDataTestControl { Dock = DockStyle.Fill };
             tabBigData.Controls.Add(bigDataControl);
 
-            // Tab 3: 架构原理解析
+            // Tab 3: Jbin 闭源专有压缩极限与零累赘实战
+            tabJbinExclusive = new TabPage
+            {
+                Text = " 🌟 Jbin 专有优势与零累赘实战 (理想数据形态 vs GZip 累赘对比) ",
+                BackColor = Color.FromArgb(248, 249, 250)
+            };
+            var jbinExclusiveControl = new JbinExclusiveBenchmarkControl { Dock = DockStyle.Fill };
+            tabJbinExclusive.Controls.Add(jbinExclusiveControl);
+
+            // Tab 4: 架构原理解析
             tabArchInfo = new TabPage
             {
                 Text = " ℹ️ 架构原理解析 (Architecture & Design) ",
@@ -94,6 +104,7 @@ namespace ApeFree.DataStore.BenchmarkDemo
 
             tabControl.TabPages.Add(tabHighFreq);
             tabControl.TabPages.Add(tabBigData);
+            tabControl.TabPages.Add(tabJbinExclusive);
             tabControl.TabPages.Add(tabArchInfo);
 
             this.Controls.Add(tabControl);

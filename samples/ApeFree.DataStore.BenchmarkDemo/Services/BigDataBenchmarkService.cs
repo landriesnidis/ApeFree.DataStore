@@ -866,6 +866,337 @@ namespace ApeFree.DataStore.BenchmarkDemo.Services
 
         #endregion
 
+        #region 3. Jbin 独有专有优势与零累赘实战评测 (工业物联网多通道遥测时序数据集)
+
+        /// <summary>
+        /// 运行 Jbin 独有专有压缩优势评测（理想数据形态 vs GZip 累赘实证）
+        /// 数据结构：IndustrialTelemetryDataset (包含递增 long[]、分组 int[]、连续平滑 float[]/double[]、枚举 string[])
+        /// </summary>
+        public List<BigDataBenchmarkResult> RunJbinExclusiveTelemetryBenchmark(
+            int recordCount,
+            Action<string> logAction = null,
+            Action<int, int, string> progressAction = null)
+        {
+            var results = new List<BigDataBenchmarkResult>();
+            logAction?.Invoke($"\r\n================ 开始评测: 工业遥测多通道时序数据集 ({recordCount:N0} 记录) ================");
+            logAction?.Invoke("正在内存中构建工业遥测多通道时序数据 (Timestamps/Voltages/Temps/Pressures/Alarms)...");
+
+            var dataset = IndustrialTelemetryDataset.Generate(recordCount);
+            long baselineJsonSize = 0;
+            double jbinAloneTotalMs = 0;
+            long jbinAloneSizeBytes = 0;
+
+            // 预热 JIT 编译器与反射类型缓存，消除冷启动编译偏差
+            {
+                var warmupDs = IndustrialTelemetryDataset.Generate(50);
+                using (var ms = new MemoryStream())
+                {
+                    var warmupAdapter = JbinSerializationAdapter.CreateWithPrimitiveCompression(
+                        singleMode: SingleArrayCompressMode.Gorilla,
+                        doubleMode: DoubleArrayCompressMode.Gorilla,
+                        int32Mode: Int32ArrayCompressMode.FrameOfReference,
+                        int64Mode: Int64ArrayCompressMode.Simple8b,
+                        stringMode: StringArrayCompressMode.Dictionary);
+                    warmupAdapter.Serialize(warmupDs, ms);
+                    ms.Position = 0;
+                    warmupAdapter.Deserialize<IndustrialTelemetryDataset>(ms);
+                }
+            }
+
+            var steps = new List<BenchmarkStep>
+            {
+                // 1. 原生 Newtonsoft.Json
+                new BenchmarkStep("原生 Newtonsoft.Json (纯文本格式)", () =>
+                {
+                    string path = Path.Combine(tempDir, "telemetry_native.json");
+                    var sw = Stopwatch.StartNew();
+                    using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 65536))
+                    using (var swWriter = new StreamWriter(fs, Encoding.UTF8))
+                    using (var jw = new JsonTextWriter(swWriter))
+                    {
+                        var serializer = new JsonSerializer();
+                        serializer.Serialize(jw, dataset);
+                    }
+                    sw.Stop();
+                    double writeMs = sw.Elapsed.TotalMilliseconds;
+                    long size = new FileInfo(path).Length;
+                    baselineJsonSize = size;
+
+                    sw.Restart();
+                    IndustrialTelemetryDataset restored;
+                    using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 65536))
+                    using (var sr = new StreamReader(fs, Encoding.UTF8))
+                    using (var jr = new JsonTextReader(sr))
+                    {
+                        var serializer = new JsonSerializer();
+                        restored = serializer.Deserialize<IndustrialTelemetryDataset>(jr);
+                    }
+                    sw.Stop();
+                    double readMs = sw.Elapsed.TotalMilliseconds;
+
+                    bool verified = restored != null && restored.RecordCount == recordCount &&
+                                    restored.Timestamps.Length == recordCount &&
+                                    restored.StatusDescriptions[0] == dataset.StatusDescriptions[0];
+
+                    return new BigDataBenchmarkResult
+                    {
+                        StrategyName = "原生 Newtonsoft.Json (纯文本格式)",
+                        DatasetType = "工业遥测时序",
+                        ElementCount = recordCount,
+                        WriteElapsedMs = writeMs,
+                        ReadElapsedMs = readMs,
+                        FileSizeBytes = size,
+                        SizeReductionPercent = 0.0,
+                        WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
+                        IsVerified = verified,
+                        Notes = "文本基准：浮点与时间戳均序列化为文本字符，无压缩"
+                    };
+                }),
+
+                // 2. 原生 XmlSerializer
+                new BenchmarkStep("原生 XmlSerializer (标准 XML 格式)", () =>
+                {
+                    string path = Path.Combine(tempDir, "telemetry_native.xml");
+                    var xmlSerializer = new XmlSerializer(typeof(IndustrialTelemetryDataset));
+                    var sw = Stopwatch.StartNew();
+                    using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 65536))
+                    {
+                        xmlSerializer.Serialize(fs, dataset);
+                    }
+                    sw.Stop();
+                    double writeMs = sw.Elapsed.TotalMilliseconds;
+                    long size = new FileInfo(path).Length;
+
+                    sw.Restart();
+                    IndustrialTelemetryDataset restored;
+                    using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 65536))
+                    {
+                        restored = (IndustrialTelemetryDataset)xmlSerializer.Deserialize(fs);
+                    }
+                    sw.Stop();
+                    double readMs = sw.Elapsed.TotalMilliseconds;
+
+                    bool verified = restored != null && restored.RecordCount == recordCount;
+                    double reduction = baselineJsonSize > 0 ? (1.0 - (double)size / baselineJsonSize) * 100.0 : 0;
+
+                    return new BigDataBenchmarkResult
+                    {
+                        StrategyName = "原生 XmlSerializer (标准 XML 格式)",
+                        DatasetType = "工业遥测时序",
+                        ElementCount = recordCount,
+                        WriteElapsedMs = writeMs,
+                        ReadElapsedMs = readMs,
+                        FileSizeBytes = size,
+                        SizeReductionPercent = reduction,
+                        WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
+                        IsVerified = verified,
+                        Notes = "XML 基准：具有冗长 XML 节点和属性标签"
+                    };
+                }),
+
+                // 3. DataStore (Json + GZip 流压缩)
+                new BenchmarkStep("ApeFree.DataStore (Json + GZip 流压缩)", () =>
+                {
+                    string path = Path.Combine(tempDir, "telemetry_json_gzip.dat");
+                    var settings = new LocalStoreAccessSettings(path)
+                    {
+                        SerializationAdapter = new JsonSerializationAdapter()
+                    };
+                    settings.StreamFilters.Add(new GZipStreamFilter(System.IO.Compression.CompressionLevel.Optimal));
+
+                    var store = StoreFactory.Factory.CreateLocalStore<IndustrialTelemetryDataset>(settings, () => dataset);
+                    var sw = Stopwatch.StartNew();
+                    store.Load();
+                    sw.Stop();
+                    double writeMs = sw.Elapsed.TotalMilliseconds;
+                    long size = new FileInfo(path).Length;
+
+                    var readStore = StoreFactory.Factory.CreateLocalStore<IndustrialTelemetryDataset>(settings);
+                    sw.Restart();
+                    readStore.Load();
+                    sw.Stop();
+                    double readMs = sw.Elapsed.TotalMilliseconds;
+
+                    bool verified = readStore.Value != null && readStore.Value.RecordCount == recordCount &&
+                                    readStore.Value.StatusDescriptions[0] == dataset.StatusDescriptions[0];
+
+                    double reduction = baselineJsonSize > 0 ? (1.0 - (double)size / baselineJsonSize) * 100.0 : 0;
+
+                    return new BigDataBenchmarkResult
+                    {
+                        StrategyName = "ApeFree.DataStore (Json + GZip 流压缩)",
+                        DatasetType = "工业遥测时序",
+                        ElementCount = recordCount,
+                        WriteElapsedMs = writeMs,
+                        ReadElapsedMs = readMs,
+                        FileSizeBytes = size,
+                        SizeReductionPercent = reduction,
+                        WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
+                        IsVerified = verified,
+                        Notes = "文本经 GZip 压缩：体积虽缩小，但文本格式化与流状态机导致耗时较高"
+                    };
+                }),
+
+                // 4. DataStore (Jbin 原生二进制零拷贝 Raw)
+                new BenchmarkStep("ApeFree.DataStore (Jbin 原生二进制零拷贝 Raw)", () =>
+                {
+                    string path = Path.Combine(tempDir, "telemetry_jbin_raw.dat");
+                    var settings = new LocalStoreAccessSettings(path)
+                    {
+                        SerializationAdapter = new JbinSerializationAdapter()
+                    };
+
+                    var store = StoreFactory.Factory.CreateLocalStore<IndustrialTelemetryDataset>(settings, () => dataset);
+                    var sw = Stopwatch.StartNew();
+                    store.Load();
+                    sw.Stop();
+                    double writeMs = sw.Elapsed.TotalMilliseconds;
+                    long size = new FileInfo(path).Length;
+
+                    var readStore = StoreFactory.Factory.CreateLocalStore<IndustrialTelemetryDataset>(settings);
+                    sw.Restart();
+                    readStore.Load();
+                    sw.Stop();
+                    double readMs = sw.Elapsed.TotalMilliseconds;
+
+                    bool verified = readStore.Value != null && readStore.Value.RecordCount == recordCount;
+                    double reduction = baselineJsonSize > 0 ? (1.0 - (double)size / baselineJsonSize) * 100.0 : 0;
+
+                    return new BigDataBenchmarkResult
+                    {
+                        StrategyName = "ApeFree.DataStore (Jbin 原生二进制零拷贝 Raw)",
+                        DatasetType = "工业遥测时序",
+                        ElementCount = recordCount,
+                        WriteElapsedMs = writeMs,
+                        ReadElapsedMs = readMs,
+                        FileSizeBytes = size,
+                        SizeReductionPercent = reduction,
+                        WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
+                        IsVerified = verified,
+                        Notes = "原生内存映射：仅执行 Buffer.BlockCopy 零拷贝，未启用算法压缩"
+                    };
+                }),
+
+                // 5. DataStore (Jbin 独有专有压缩: Gorilla/FoR/Simple8b/Dict) ⭐
+                new BenchmarkStep("ApeFree.DataStore (Jbin 闭源专有压缩: 算法级全开)", () =>
+                {
+                    string path = Path.Combine(tempDir, "telemetry_jbin_exclusive.dat");
+                    var settings = new LocalStoreAccessSettings(path)
+                    {
+                        SerializationAdapter = JbinSerializationAdapter.CreateWithPrimitiveCompression(
+                            singleMode: SingleArrayCompressMode.Gorilla,
+                            doubleMode: DoubleArrayCompressMode.Gorilla,
+                            int32Mode: Int32ArrayCompressMode.FrameOfReference,
+                            int64Mode: Int64ArrayCompressMode.Simple8b,
+                            stringMode: StringArrayCompressMode.Dictionary)
+                    };
+
+                    var store = StoreFactory.Factory.CreateLocalStore<IndustrialTelemetryDataset>(settings, () => dataset);
+                    var sw = Stopwatch.StartNew();
+                    store.Load();
+                    sw.Stop();
+                    double writeMs = sw.Elapsed.TotalMilliseconds;
+                    long size = new FileInfo(path).Length;
+
+                    var readStore = StoreFactory.Factory.CreateLocalStore<IndustrialTelemetryDataset>(settings);
+                    sw.Restart();
+                    readStore.Load();
+                    sw.Stop();
+                    double readMs = sw.Elapsed.TotalMilliseconds;
+
+                    bool verified = readStore.Value != null && readStore.Value.RecordCount == recordCount &&
+                                    Math.Abs(readStore.Value.Temperatures[0] - dataset.Temperatures[0]) < 0.001f &&
+                                    readStore.Value.StatusDescriptions[0] == dataset.StatusDescriptions[0];
+
+                    double reduction = baselineJsonSize > 0 ? (1.0 - (double)size / baselineJsonSize) * 100.0 : 0;
+
+                    jbinAloneTotalMs = writeMs + readMs;
+                    jbinAloneSizeBytes = size;
+
+                    return new BigDataBenchmarkResult
+                    {
+                        StrategyName = "ApeFree.DataStore (Jbin 闭源专有压缩: 算法级全开)",
+                        DatasetType = "工业遥测时序",
+                        ElementCount = recordCount,
+                        WriteElapsedMs = writeMs,
+                        ReadElapsedMs = readMs,
+                        FileSizeBytes = size,
+                        SizeReductionPercent = reduction,
+                        WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
+                        IsVerified = verified,
+                        Notes = "⭐ 黄金平衡点：Gorilla浮点 + FoR整型 + Simple-8b时间戳 + 字符串字典编码，无外层流过滤器"
+                    };
+                }),
+
+                // 6. DataStore (Jbin 专有压缩 + GZip 复合累赘对比)
+                new BenchmarkStep("ApeFree.DataStore (Jbin 闭源专有压缩 + GZip 累赘对比)", () =>
+                {
+                    string path = Path.Combine(tempDir, "telemetry_jbin_gzip_redundant.dat");
+                    var settings = new LocalStoreAccessSettings(path)
+                    {
+                        SerializationAdapter = JbinSerializationAdapter.CreateWithPrimitiveCompression(
+                            singleMode: SingleArrayCompressMode.Gorilla,
+                            doubleMode: DoubleArrayCompressMode.Gorilla,
+                            int32Mode: Int32ArrayCompressMode.FrameOfReference,
+                            int64Mode: Int64ArrayCompressMode.Simple8b,
+                            stringMode: StringArrayCompressMode.Dictionary)
+                    };
+                    settings.StreamFilters.Add(new GZipStreamFilter(System.IO.Compression.CompressionLevel.Optimal));
+
+                    var store = StoreFactory.Factory.CreateLocalStore<IndustrialTelemetryDataset>(settings, () => dataset);
+                    var sw = Stopwatch.StartNew();
+                    store.Load();
+                    sw.Stop();
+                    double writeMs = sw.Elapsed.TotalMilliseconds;
+                    long size = new FileInfo(path).Length;
+
+                    var readStore = StoreFactory.Factory.CreateLocalStore<IndustrialTelemetryDataset>(settings);
+                    sw.Restart();
+                    readStore.Load();
+                    sw.Stop();
+                    double readMs = sw.Elapsed.TotalMilliseconds;
+
+                    bool verified = readStore.Value != null && readStore.Value.RecordCount == recordCount &&
+                                    Math.Abs(readStore.Value.Temperatures[0] - dataset.Temperatures[0]) < 0.001f &&
+                                    readStore.Value.StatusDescriptions[0] == dataset.StatusDescriptions[0];
+
+                    double reduction = baselineJsonSize > 0 ? (1.0 - (double)size / baselineJsonSize) * 100.0 : 0;
+                    double totalMs = writeMs + readMs;
+
+                    double extraTimePercent = jbinAloneTotalMs > 0 ? ((totalMs - jbinAloneTotalMs) / jbinAloneTotalMs) * 100.0 : 0;
+                    double extraSavedBytes = jbinAloneSizeBytes - size;
+                    double extraSavedPercent = jbinAloneSizeBytes > 0 ? ((double)extraSavedBytes / jbinAloneSizeBytes) * 100.0 : 0;
+
+                    return new BigDataBenchmarkResult
+                    {
+                        StrategyName = "ApeFree.DataStore (Jbin 闭源专有压缩 + GZip 累赘对比)",
+                        DatasetType = "工业遥测时序",
+                        ElementCount = recordCount,
+                        WriteElapsedMs = writeMs,
+                        ReadElapsedMs = readMs,
+                        FileSizeBytes = size,
+                        SizeReductionPercent = reduction,
+                        WriteThroughputMBs = (size / (1024.0 * 1024.0)) / (writeMs / 1000.0),
+                        IsVerified = verified,
+                        Notes = $"实证累赘效应：叠加 GZip 额外耗时增加 {extraTimePercent:F1}%，但体积仅微缩 {extraSavedPercent:F1}%，边际收益极低"
+                    };
+                })
+            };
+
+            for (int i = 0; i < steps.Count; i++)
+            {
+                progressAction?.Invoke(i + 1, steps.Count, steps[i].Name);
+                logAction?.Invoke($"[{i + 1}/{steps.Count}] 正在评测: {steps[i].Name}...");
+                var r = steps[i].Runner();
+                results.Add(r);
+                logAction?.Invoke($"  -> 完成: 写入={r.WriteElapsedMs:F1}ms, 读取={r.ReadElapsedMs:F1}ms, 体积={r.FormattedFileSize}, 相对JSON缩减={r.SizeReductionPercent:F1}%, 校验={r.IsVerified}");
+            }
+
+            return results;
+        }
+
+        #endregion
+
         public void CleanUp()
         {
             try

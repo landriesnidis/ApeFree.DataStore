@@ -169,4 +169,78 @@ namespace ApeFree.DataStore.BenchmarkDemo.Models
             return new List<DeviceLogRecord>(arr);
         }
     }
+
+    /// <summary>
+    /// 工业物联网与智能装备遥测多通道时序数据集（Jbin 理想数据形态模型）
+    /// 专为 Jbin 闭源原生压缩特性量身定制：
+    /// - 毫秒级单调递增时间戳 (long[] -> Simple-8b 算法)
+    /// - 采集通道编号与工况状态字 (int[] -> Frame of Reference 算法)
+    /// - 多通道连续平滑物理量 (float[] Temperatures, Pressures, Vibrations -> Gorilla 算法)
+    /// - 高精度工作电压 (double[] Voltages -> Gorilla 算法)
+    /// - 离散状态与告警字符串 (string[] StatusDescriptions -> Dictionary 字典编码)
+    /// </summary>
+    [Serializable]
+    [XmlRoot("IndustrialTelemetryDataset")]
+    public class IndustrialTelemetryDataset
+    {
+        public string DeviceModel { get; set; } = "ApeFree-EdgeGateway-X800";
+        public DateTime BatchTime { get; set; } = DateTime.UtcNow;
+        public int RecordCount { get; set; }
+
+        public long[] Timestamps { get; set; }
+        public int[] ChannelIds { get; set; }
+        public int[] StatusCodes { get; set; }
+        public float[] Temperatures { get; set; }
+        public float[] Pressures { get; set; }
+        public float[] Vibrations { get; set; }
+        public double[] Voltages { get; set; }
+        public string[] StatusDescriptions { get; set; }
+
+        public IndustrialTelemetryDataset() { }
+
+        public static IndustrialTelemetryDataset Generate(int count)
+        {
+            var rand = new Random(42);
+            var ds = new IndustrialTelemetryDataset
+            {
+                RecordCount = count,
+                BatchTime = DateTime.UtcNow,
+                Timestamps = new long[count],
+                ChannelIds = new int[count],
+                StatusCodes = new int[count],
+                Temperatures = new float[count],
+                Pressures = new float[count],
+                Vibrations = new float[count],
+                Voltages = new double[count],
+                StatusDescriptions = new string[count]
+            };
+
+            long baseTimestamp = 1700000000000L;
+            string[] statusPool = new[] { "NORMAL_RUNNING", "OPTIMAL_LOAD", "OVERTEMP_WARNING", "PRESSURE_PEAK", "STANDBY_IDLE" };
+
+            float temp = 65.0f;
+            float press = 101.3f;
+            double volt = 220.0;
+
+            for (int i = 0; i < count; i++)
+            {
+                ds.Timestamps[i] = baseTimestamp + (i * 10); // 每 10ms 一个采样点
+                ds.ChannelIds[i] = i % 8;                    // 8 通道循环
+                ds.StatusCodes[i] = 200 + (i % 5);           // 状态码 200-204
+
+                // 连续浮点时序（模拟真实物理过程的微小漂移，体现 Gorilla 算法最大威力）
+                temp += (float)(rand.NextDouble() * 0.2 - 0.1);
+                press += (float)(rand.NextDouble() * 0.4 - 0.2);
+                volt += (rand.NextDouble() * 0.1 - 0.05);
+
+                ds.Temperatures[i] = temp;
+                ds.Pressures[i] = press;
+                ds.Vibrations[i] = (float)(rand.NextDouble() * 5.0);
+                ds.Voltages[i] = volt;
+                ds.StatusDescriptions[i] = statusPool[i % statusPool.Length];
+            }
+
+            return ds;
+        }
+    }
 }

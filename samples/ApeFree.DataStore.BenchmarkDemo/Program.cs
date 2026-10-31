@@ -25,6 +25,11 @@ namespace ApeFree.DataStore.BenchmarkDemo
                     RunFullReportAsync().GetAwaiter().GetResult();
                     return;
                 }
+                if (args[0] == "--jbin-exclusive" || args[0] == "-j")
+                {
+                    RunJbinExclusiveReportAsync().GetAwaiter().GetResult();
+                    return;
+                }
             }
 
             Application.EnableVisualStyles();
@@ -62,6 +67,30 @@ namespace ApeFree.DataStore.BenchmarkDemo
             {
                 Console.WriteLine($"{r.StrategyName} | 写入: {r.WriteElapsedMs:F1}ms | 读取: {r.ReadElapsedMs:F1}ms | 总计: {r.TotalElapsedMs:F1}ms | 体积: {r.FormattedFileSize} ({r.FileSizeBytes}B) | 缩减率: {r.SizeReductionPercent:F1}% | 吞吐: {r.WriteThroughputMBs:F1}MB/s | 校验: {r.IsVerified}");
             }
+
+            Console.WriteLine("\r\n================================================================================");
+            Console.WriteLine("REPORT 3: Jbin 闭源专有技术极致性能评测（理想数据形态 vs GZip 累赘实证）(50,000 记录, IndustrialTelemetryDataset)");
+            Console.WriteLine("================================================================================");
+            var telemetryResults = bd.RunJbinExclusiveTelemetryBenchmark(50000, null, null);
+            foreach (var r in telemetryResults)
+            {
+                Console.WriteLine($"{r.StrategyName} | 写入: {r.WriteElapsedMs:F1}ms | 读取: {r.ReadElapsedMs:F1}ms | 总计: {r.TotalElapsedMs:F1}ms | 体积: {r.FormattedFileSize} ({r.FileSizeBytes}B) | 缩减率: {r.SizeReductionPercent:F1}% | 吞吐: {r.WriteThroughputMBs:F1}MB/s | 校验: {r.IsVerified}");
+            }
+            bd.CleanUp();
+        }
+
+        private static async Task RunJbinExclusiveReportAsync()
+        {
+            Console.WriteLine("================================================================================");
+            Console.WriteLine("🌟 Jbin 闭源专有技术极致性能评测（理想数据形态 vs GZip 累赘实证）(50,000 记录)");
+            Console.WriteLine("================================================================================");
+            var bd = new BigDataBenchmarkService();
+            var results = bd.RunJbinExclusiveTelemetryBenchmark(50000, Console.WriteLine, null);
+            Console.WriteLine("\r\n================ 明细对比结果汇总 ================");
+            foreach (var r in results)
+            {
+                Console.WriteLine($"{r.StrategyName} | 写入: {r.WriteElapsedMs:F1}ms | 读取: {r.ReadElapsedMs:F1}ms | 总计: {r.TotalElapsedMs:F1}ms | 体积: {r.FormattedFileSize} ({r.FileSizeBytes}B) | 缩减率: {r.SizeReductionPercent:F1}% | 吞吐: {r.WriteThroughputMBs:F1}MB/s | 校验: {r.IsVerified}");
+            }
             bd.CleanUp();
         }
 
@@ -82,6 +111,10 @@ namespace ApeFree.DataStore.BenchmarkDemo
             Console.WriteLine("\r\n=== [Smoke Test 3: 超大业务实体集合 (Jbin 列式转置)] ===");
             var objResults = bdService.RunObjectBatchBenchmark(2000, Console.WriteLine, null);
             Console.WriteLine($"Object Batch Tests Completed. Result count: {objResults.Count}");
+
+            Console.WriteLine("\r\n=== [Smoke Test 4: Jbin 理想数据形态与累赘验证评测 (5,000 记录)] ===");
+            var telemetryResults = bdService.RunJbinExclusiveTelemetryBenchmark(5000, Console.WriteLine, null);
+            Console.WriteLine($"Telemetry Tests Completed. Result count: {telemetryResults.Count}");
             bdService.CleanUp();
 
             Console.WriteLine("\r\n>>> ALL BENCHMARK PIPELINES VERIFIED SUCCESSFULLY! <<<");

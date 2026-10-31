@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFrameworks>net8.0-windows;net472</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <NoWarn>$(NoWarn);CA1416;0618</NoWarn>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>ApeFree.DataStore.Demo</RootNamespace>
+    <AssemblyName>ApeFree.DataStore.Demo</AssemblyName>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ApeFree.DataStore.Registry\ApeFree.DataStore.Registry.csproj" />
+    <ProjectReference Include="..\..\src\ApeFree.DataStore\ApeFree.DataStore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="STTech.CodePlus" Version="1.7.7" />
+  </ItemGroup>
+
+</Project>

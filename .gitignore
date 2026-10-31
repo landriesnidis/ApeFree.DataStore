@@ -350,3 +350,9 @@ MigrationBackup/
 .ionide/
 /ApeFree.DataStore.Demo
 /Demo
+
+# ApeFree Release & Local scripts
+[Ii]nstall/
+build-release.ps1
+*.nupkg
+*.snupkg

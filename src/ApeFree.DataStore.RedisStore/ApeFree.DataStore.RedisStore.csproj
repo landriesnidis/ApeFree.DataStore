@@ -1,33 +1,36 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+		<LangVersion>latest</LangVersion>
 		<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591;0618</NoWarn>
 		<Company>ApeFree</Company>
-		<Authors>JiaJie Hu</Authors>
-		<Title>DataStore</Title>
-		<Version>1.0.6</Version>
+		<Authors>JiaJie Hu;Guijie Lee</Authors>
+		<Title>ApeFree.DataStore.RedisStore</Title>
+		<Version>3.0.0</Version>
 		<RepositoryUrl>https://github.com/landriesnidis/ApeFree.DataStore</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>storage;persistence;serialization;redis</PackageTags>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 		<PackageIcon>ApeFree_64px.png</PackageIcon>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Description>基于ApeFree.DataStore提供Redis存储器的实现。</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<Description>基于 ApeFree.DataStore 提供 Redis 存储器的实现扩展包。</Description>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="..\ApeFree_64px.png" Link="ApeFree_64px.png">
+		<None Include="..\..\ApeFree_64px.png" Link="ApeFree_64px.png">
 			<PackagePath>\</PackagePath>
 			<Pack>True</Pack>
 		</None>
+		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="ServiceStack.Redis" Version="6.9.0" />
-		<PackageReference Include="STTech.CodePlus" Version="1.7.2.3" />
+		<PackageReference Include="ServiceStack.Redis" Version="8.5.2" />
+		<PackageReference Include="STTech.CodePlus" Version="1.7.7" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+		<LangVersion>latest</LangVersion>
+		<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591;0618</NoWarn>
+		<Company>ApeFree</Company>
+		<Authors>Guijie Lee</Authors>
+		<Title>ApeFree.DataStore</Title>
+		<Version>3.0.0</Version>
+		<RepositoryUrl>https://github.com/landriesnidis/ApeFree.DataStore</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageTags>storage;persistence;serialization;pipeline;jbin;coalescing</PackageTags>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<PackageIcon>ApeFree_64px.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<Description>ApeFree.DataStore 是一款现代化轻量级对象持久化存储库。支持在不同平台/介质中对内存对象进行透明存储与还原（如本地文件、注册表、Redis）；内置双缓冲读写因果合并调度器（CoalesceMangedModel）；支持自由编排的流式处理管道（压缩、加密、校验）；深度集成 Jbin 极限性能序列化。</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\ApeFree_64px.png" Link="ApeFree_64px.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="ApeFree.Protocols.Json" Version="0.0.4.1" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="STTech.CodePlus" Version="1.7.7" />
+	</ItemGroup>
+
+</Project>

@@ -173,5 +173,66 @@ namespace ApeFree.DataStore.Tests
             Assert.AreEqual(list[100].Code, restoredList[100].Code);
             Assert.AreEqual(list[count - 1].Value, restoredList[count - 1].Value, 0.0001);
         }
+        [TestMethod]
+        public void TestJbinStringDictArrayConverter()
+        {
+            var settings = ApeFree.Protocols.Json.Jbin.JbinObject.JsonSerializerSettings;
+            var strConverter = settings.Converters.OfType<ApeFree.Protocols.Json.Jbin.JbinStringDictArrayConverter>().FirstOrDefault();
+            Assert.IsNotNull(strConverter, "JbinStringDictArrayConverter 应该存在于默认 Converters 中");
+
+            strConverter.StringArrayMode = ApeFree.Protocols.Json.Jbin.StringArrayCompressMode.Dictionary;
+
+            var testData = new
+            {
+                Codes = Enumerable.Range(0, 1000).Select(i => $"ALARM_LEVEL_{i % 5}").ToArray()
+            };
+
+            var adapter = new JbinSerializationAdapter(settings);
+            using var ms = new MemoryStream();
+            adapter.Serialize(testData, ms);
+            var bytes = ms.ToArray();
+
+            Assert.IsTrue(bytes.Length > 0);
+            Console.WriteLine($"1000 Strings with 5 unique values serialized to Jbin Dict: {bytes.Length} bytes");
+        }
+
+        [TestMethod]
+        public void TestIndustrialTelemetryFullSpecializedCompression()
+        {
+            const int count = 2000;
+            var rand = new Random(42);
+            var timestamps = Enumerable.Range(0, count).Select(i => 1700000000000L + i * 10).ToArray();
+            var channels = Enumerable.Range(0, count).Select(i => i % 8).ToArray();
+            var temps = new float[count];
+            float t = 50.0f;
+            for (int i = 0; i < count; i++) { t += (float)(rand.NextDouble() * 0.2 - 0.1); temps[i] = t; }
+            var alarms = Enumerable.Range(0, count).Select(i => $"ALARM_CODE_{i % 4}").ToArray();
+
+            var dataset = new
+            {
+                BatchId = "BATCH_2026",
+                Timestamps = timestamps,
+                Channels = channels,
+                Temperatures = temps,
+                Alarms = alarms
+            };
+
+            var adapter = JbinSerializationAdapter.CreateWithPrimitiveCompression(
+                singleMode: ApeFree.Protocols.Json.Jbin.SingleArrayCompressMode.Gorilla,
+                doubleMode: ApeFree.Protocols.Json.Jbin.DoubleArrayCompressMode.Gorilla,
+                int32Mode: ApeFree.Protocols.Json.Jbin.Int32ArrayCompressMode.FrameOfReference,
+                int64Mode: ApeFree.Protocols.Json.Jbin.Int64ArrayCompressMode.Simple8b,
+                stringMode: ApeFree.Protocols.Json.Jbin.StringArrayCompressMode.Dictionary);
+
+            byte[] bytes;
+            using (var ms = new MemoryStream())
+            {
+                adapter.Serialize(dataset, ms);
+                bytes = ms.ToArray();
+            }
+
+            Assert.IsTrue(bytes.Length > 0, "序列化字节流不能为空");
+            Console.WriteLine($"Telemetry ({count} items) with full specialized compression size: {bytes.Length} bytes");
+        }
     }
 }

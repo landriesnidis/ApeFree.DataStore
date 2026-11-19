@@ -20,7 +20,7 @@
   <ItemGroup>
     <PackageReference Include="ApeFree.Protocols.Json" Version="0.0.4.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="STTech.CodePlus" Version="1.7.7" />
+    <PackageReference Include="STTech.CodePlus" Version="1.8.0" />
   </ItemGroup>
 
 </Project>

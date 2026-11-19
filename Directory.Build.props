@@ -1,0 +1,54 @@
+<Project>
+  <PropertyGroup>
+    <!-- 统一版本控制 -->
+    <Version>3.0.1</Version>
+    <AssemblyVersion>3.0.1.0</AssemblyVersion>
+    <FileVersion>3.0.1.0</FileVersion>
+
+    <!-- 统一公司与版权信息 -->
+    <Company>ApeFree</Company>
+    <Authors>Guijie Lee</Authors>
+    <Copyright>Copyright © 2022-2026 ApeFree, All Rights Reserved.</Copyright>
+
+    <!-- 开源仓库与许可协议规范 -->
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <RepositoryUrl>https://github.com/landriesnidis/ApeFree.DataStore</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/landriesnidis/ApeFree.DataStore</PackageProjectUrl>
+
+    <!-- NuGet 包文档与图标规范 -->
+    <PackageIcon>ApeFree_64px.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- 语言与通用编译参数 -->
+    <LangVersion>latest</LangVersion>
+    <NoWarn>$(NoWarn);1591;0618</NoWarn>
+  </PropertyGroup>
+
+  <!-- 识别项目类别：判断是否为发布类库项目 (src 目录下的项目) -->
+  <PropertyGroup>
+    <_SrcRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', 'src'))</_SrcRoot>
+    <_ProjectDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)'))</_ProjectDir>
+    <IsDataStoreLibrary Condition="$(_ProjectDir.ToLowerInvariant().StartsWith('$(_SrcRoot.ToLowerInvariant())'))">true</IsDataStoreLibrary>
+  </PropertyGroup>
+
+  <!-- 非发布类库项目 (samples/tests) 默认不打包 -->
+  <PropertyGroup Condition="'$(IsDataStoreLibrary)' != 'true'">
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- 仅对核心库与子库统一配置 XML 文档与打包设置 -->
+  <PropertyGroup Condition="'$(IsDataStoreLibrary)' == 'true'">
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!-- 自动将根目录的 Logo 打包到 NuGet 包中 -->
+  <ItemGroup Condition="'$(IsDataStoreLibrary)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)ApeFree_64px.png" Link="ApeFree_64px.png" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+</Project>
